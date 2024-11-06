@@ -1,0 +1,171 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>neurosnap.log &mdash; neurosnap 0.0.64 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=b153cf10"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            neurosnap
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../neurosnap.html">neurosnap package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">neurosnap</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">neurosnap.log</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for neurosnap.log</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">logging</span>
+
+
+<span class="c1">### CLASSES ###</span>
+<div class="viewcode-block" id="c">
+<a class="viewcode-back" href="../../neurosnap.html#neurosnap.log.c">[docs]</a>
+<span class="k">class</span> <span class="nc">c</span><span class="p">:</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;Terminal colors class&quot;&quot;&quot;</span>
+
+  <span class="n">_</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\033</span><span class="s2">[0m&quot;</span>  <span class="c1"># reset terminal</span>
+  <span class="n">p</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\033</span><span class="s2">[38;5;204m&quot;</span>  <span class="c1"># pink</span>
+  <span class="n">o</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\033</span><span class="s2">[38;5;208m&quot;</span>  <span class="c1"># orange</span>
+  <span class="n">b</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\033</span><span class="s2">[38;5;295m&quot;</span>  <span class="c1"># blue</span>
+  <span class="n">c</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\033</span><span class="s2">[38;5;299m&quot;</span>  <span class="c1"># cyan</span>
+  <span class="n">g</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\033</span><span class="s2">[38;5;47m&quot;</span>  <span class="c1"># green</span>
+  <span class="n">grey</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\033</span><span class="s2">[90m&quot;</span>  <span class="c1"># grey</span>
+  <span class="n">r</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\033</span><span class="s2">[38;5;1m&quot;</span>  <span class="c1"># red</span>
+  <span class="n">br</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\x1b</span><span class="s2">[31;1m&quot;</span>  <span class="c1"># boldred</span>
+  <span class="n">y</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\033</span><span class="s2">[38;5;226m&quot;</span>  <span class="c1"># yellow</span></div>
+
+
+
+<div class="viewcode-block" id="CustomLogger">
+<a class="viewcode-back" href="../../neurosnap.html#neurosnap.log.CustomLogger">[docs]</a>
+<span class="k">class</span> <span class="nc">CustomLogger</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">Formatter</span><span class="p">):</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;Custom logger with specialized formatting.</span>
+
+<span class="sd">  NOTE:</span>
+<span class="sd">    ``[+] logging.DEBUG``: Used for all general info</span>
+
+<span class="sd">    ``[*] logging.INFO``: Used for more important key info that isn&#39;t negative</span>
+
+<span class="sd">    ``[-] logging.WARNING``: Used for non-severe info that is negative</span>
+
+<span class="sd">    ``[!] logging.ERROR``: Used for errors that require attention but are super concerning</span>
+
+<span class="sd">    ``[!] logging.CRITICAL``: Used for very severe errors that require immediate attention and are concerning</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="n">log_format_detailed</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">c</span><span class="o">.</span><span class="n">grey</span><span class="si">}</span><span class="s2">%(asctime)s</span><span class="si">{</span><span class="n">c</span><span class="o">.</span><span class="n">_</span><span class="si">}</span><span class="s2"> %(message)s </span><span class="si">{</span><span class="n">c</span><span class="o">.</span><span class="n">p</span><span class="si">}</span><span class="s2">(%(filename)s:%(lineno)d)</span><span class="si">{</span><span class="n">c</span><span class="o">.</span><span class="n">_</span><span class="si">}</span><span class="s2">&quot;</span>
+  <span class="n">log_format_basic</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%(message)s</span><span class="s2">&quot;</span>
+
+  <span class="n">FORMATS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">c</span><span class="o">.</span><span class="n">g</span><span class="si">}</span><span class="s2">[+]</span><span class="si">{</span><span class="n">c</span><span class="o">.</span><span class="n">_</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">log_format_basic</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">c</span><span class="o">.</span><span class="n">b</span><span class="si">}</span><span class="s2">[*]</span><span class="si">{</span><span class="n">c</span><span class="o">.</span><span class="n">_</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">log_format_basic</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">WARNING</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">c</span><span class="o">.</span><span class="n">y</span><span class="si">}</span><span class="s2">[-]</span><span class="si">{</span><span class="n">c</span><span class="o">.</span><span class="n">_</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">log_format_detailed</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">ERROR</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">c</span><span class="o">.</span><span class="n">r</span><span class="si">}</span><span class="s2">[!]</span><span class="si">{</span><span class="n">c</span><span class="o">.</span><span class="n">_</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">log_format_detailed</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">CRITICAL</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">c</span><span class="o">.</span><span class="n">br</span><span class="si">}</span><span class="s2">[!]</span><span class="si">{</span><span class="n">c</span><span class="o">.</span><span class="n">_</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">log_format_detailed</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+  <span class="p">}</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;:meta private:&quot;&quot;&quot;</span>
+  <span class="c1"># marking this as private so sphinx doesn&#39;t try to document it</span>
+
+<div class="viewcode-block" id="CustomLogger.format">
+<a class="viewcode-back" href="../../neurosnap.html#neurosnap.log.CustomLogger.format">[docs]</a>
+  <span class="k">def</span> <span class="nf">format</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">record</span><span class="p">):</span>
+    <span class="n">log_fmt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FORMATS</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">levelno</span><span class="p">)</span>
+    <span class="n">formatter</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">Formatter</span><span class="p">(</span><span class="n">log_fmt</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">formatter</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">record</span><span class="p">)</span></div>
+</div>
+
+
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;neurosnap&quot;</span><span class="p">)</span>
+<span class="n">logger</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">)</span>
+
+<span class="c1"># create console handler with a higher log level</span>
+<span class="n">ch</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">StreamHandler</span><span class="p">()</span>
+<span class="n">ch</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">)</span>
+<span class="n">ch</span><span class="o">.</span><span class="n">setFormatter</span><span class="p">(</span><span class="n">CustomLogger</span><span class="p">())</span>
+<span class="n">logger</span><span class="o">.</span><span class="n">addHandler</span><span class="p">(</span><span class="n">ch</span><span class="p">)</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Keaun Amani.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

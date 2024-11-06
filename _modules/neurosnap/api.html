@@ -1,0 +1,476 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>neurosnap.api &mdash; neurosnap 0.0.64 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=b153cf10"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            neurosnap
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../neurosnap.html">neurosnap package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">neurosnap</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">neurosnap.api</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for neurosnap.api</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">urllib.parse</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+
+<span class="kn">import</span> <span class="nn">requests</span>
+<span class="kn">from</span> <span class="nn">tabulate</span> <span class="kn">import</span> <span class="n">tabulate</span>
+
+<span class="kn">from</span> <span class="nn">neurosnap.log</span> <span class="kn">import</span> <span class="n">logger</span>
+
+<span class="c1"># try to get the version of the user agent</span>
+<span class="n">version</span> <span class="o">=</span> <span class="s2">&quot;X&quot;</span>
+<span class="k">try</span><span class="p">:</span>
+  <span class="kn">from</span> <span class="nn">importlib.metadata</span> <span class="kn">import</span> <span class="n">version</span>
+
+  <span class="n">version</span><span class="p">(</span><span class="s2">&quot;neurosnap&quot;</span><span class="p">)</span>
+<span class="k">except</span><span class="p">:</span>
+  <span class="k">pass</span>
+<span class="c1"># User agent to use throughout the application</span>
+<span class="n">USER_AGENT</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Neurosnap-OSS-Tools/v</span><span class="si">{</span><span class="n">version</span><span class="si">}</span><span class="s2">&quot;</span>
+
+
+<div class="viewcode-block" id="NeurosnapAPI">
+<a class="viewcode-back" href="../../neurosnap.html#neurosnap.api.NeurosnapAPI">[docs]</a>
+<span class="k">class</span> <span class="nc">NeurosnapAPI</span><span class="p">:</span>
+  <span class="n">BASE_URL</span> <span class="o">=</span> <span class="s2">&quot;https://neurosnap.ai/api&quot;</span>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">api_key</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">api_key</span> <span class="o">=</span> <span class="n">api_key</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;X-API-KEY&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">api_key</span><span class="p">,</span> <span class="s2">&quot;User-Agent&quot;</span><span class="p">:</span> <span class="n">USER_AGENT</span><span class="p">}</span>
+    <span class="c1"># test to ensure authenticated</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">BASE_URL</span><span class="si">}</span><span class="s2">/jobs&quot;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">headers</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">status_code</span> <span class="o">!=</span> <span class="mi">200</span><span class="p">:</span>
+      <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;Invalid API key provided (status code: </span><span class="si">{</span><span class="n">r</span><span class="o">.</span><span class="n">status_code</span><span class="si">}</span><span class="s2">). Failed to setup the NeurosnapAPI object, please ensure your API key is correct.&quot;</span>
+      <span class="p">)</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid token provided&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+        <span class="s2">&quot;Successfully connected to the Neurosnap API.</span><span class="se">\n</span><span class="s2"> - For information visit https://neurosnap.ai/blog/post/66b00dacec3f2aa9b4be703a</span><span class="se">\n</span><span class="s2"> - For support visit https://neurosnap.ai/support</span><span class="se">\n</span><span class="s2"> - For bug reports visit https://github.com/NeurosnapInc/neurosnap&quot;</span>
+      <span class="p">)</span>
+
+<div class="viewcode-block" id="NeurosnapAPI.get_services">
+<a class="viewcode-back" href="../../neurosnap.html#neurosnap.api.NeurosnapAPI.get_services">[docs]</a>
+  <span class="k">def</span> <span class="nf">get_services</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">format_type</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Fetches and returns a list of available Neurosnap services. Optionally prints the services.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">      format_type:</span>
+<span class="sd">        - &quot;table&quot;: Prints services in a tabular format with key fields.</span>
+<span class="sd">        - &quot;json&quot;: Prints services as formatted JSON.</span>
+<span class="sd">        - None (default): No printing.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A list of dictionaries representing available services.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      HTTPError: If the API request fails.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">BASE_URL</span><span class="si">}</span><span class="s2">/services&quot;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">headers</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">200</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Expected status code 200, got </span><span class="si">{</span><span class="n">response</span><span class="o">.</span><span class="n">status_code</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="n">services</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">format_service</span><span class="p">(</span><span class="n">service</span><span class="p">):</span>
+<span class="w">      </span><span class="sd">&quot;&quot;&quot;Helper to format individual service details.&quot;&quot;&quot;</span>
+      <span class="n">title</span> <span class="o">=</span> <span class="n">service</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;title&quot;</span><span class="p">)</span>
+      <span class="n">link</span> <span class="o">=</span> <span class="n">urllib</span><span class="o">.</span><span class="n">parse</span><span class="o">.</span><span class="n">quote</span><span class="p">(</span><span class="n">title</span><span class="p">)</span>
+      <span class="n">link</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;https://neurosnap.ai/service/</span><span class="si">{</span><span class="n">link</span><span class="si">}</span><span class="s2">&quot;</span>
+      <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;Title&quot;</span><span class="p">:</span> <span class="n">title</span><span class="p">,</span> <span class="s2">&quot;Beta&quot;</span><span class="p">:</span> <span class="n">service</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;beta&quot;</span><span class="p">),</span> <span class="s2">&quot;Link&quot;</span><span class="p">:</span> <span class="n">link</span><span class="p">}</span>
+
+    <span class="n">formatted_services</span> <span class="o">=</span> <span class="p">[</span><span class="n">format_service</span><span class="p">(</span><span class="n">service</span><span class="p">)</span> <span class="k">for</span> <span class="n">service</span> <span class="ow">in</span> <span class="n">services</span><span class="p">]</span>
+    <span class="n">format_type</span> <span class="o">=</span> <span class="n">format_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">format_type</span> <span class="o">==</span> <span class="s2">&quot;table&quot;</span><span class="p">:</span>
+      <span class="nb">print</span><span class="p">(</span><span class="n">tabulate</span><span class="p">(</span><span class="n">formatted_services</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="s2">&quot;keys&quot;</span><span class="p">))</span>
+    <span class="k">elif</span> <span class="n">format_type</span> <span class="o">==</span> <span class="s2">&quot;json&quot;</span><span class="p">:</span>
+      <span class="nb">print</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">services</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">services</span></div>
+
+
+<div class="viewcode-block" id="NeurosnapAPI.get_jobs">
+<a class="viewcode-back" href="../../neurosnap.html#neurosnap.api.NeurosnapAPI.get_jobs">[docs]</a>
+  <span class="k">def</span> <span class="nf">get_jobs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">format_type</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Fetches and returns a list of submitted jobs. Optionally prints the jobs.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">      format_type:</span>
+<span class="sd">        - &quot;table&quot;: Prints jobs in tabular format.</span>
+<span class="sd">        - &quot;json&quot;: Prints jobs as formatted JSON.</span>
+<span class="sd">        - None (default): No printing.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Submitted jobs as a list of dictionaries.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      HTTPError: If the API request fails.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">BASE_URL</span><span class="si">}</span><span class="s2">/jobs&quot;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">headers</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">200</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Expected status code 200, got </span><span class="si">{</span><span class="n">response</span><span class="o">.</span><span class="n">status_code</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="n">jobs</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">job</span> <span class="ow">in</span> <span class="n">jobs</span><span class="p">:</span>
+      <span class="k">if</span> <span class="s2">&quot;Submitted&quot;</span> <span class="ow">in</span> <span class="n">job</span><span class="p">:</span>
+        <span class="n">timestamp</span> <span class="o">=</span> <span class="n">job</span><span class="p">[</span><span class="s2">&quot;Submitted&quot;</span><span class="p">]</span> <span class="o">//</span> <span class="mi">1000</span>  <span class="c1"># Convert milliseconds to seconds</span>
+        <span class="n">job</span><span class="p">[</span><span class="s2">&quot;Submitted&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">fromtimestamp</span><span class="p">(</span><span class="n">timestamp</span><span class="p">)</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">format_type</span> <span class="o">=</span> <span class="n">format_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">format_type</span> <span class="o">==</span> <span class="s2">&quot;table&quot;</span><span class="p">:</span>
+      <span class="nb">print</span><span class="p">(</span><span class="n">tabulate</span><span class="p">(</span><span class="n">jobs</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="s2">&quot;keys&quot;</span><span class="p">))</span>
+    <span class="k">elif</span> <span class="n">format_type</span> <span class="o">==</span> <span class="s2">&quot;json&quot;</span><span class="p">:</span>
+      <span class="nb">print</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">jobs</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">jobs</span></div>
+
+
+<div class="viewcode-block" id="NeurosnapAPI.submit_job">
+<a class="viewcode-back" href="../../neurosnap.html#neurosnap.api.NeurosnapAPI.submit_job">[docs]</a>
+  <span class="k">def</span> <span class="nf">submit_job</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">service_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">files</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Submit a Neurosnap job.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">      service_name: The name of the service to run.</span>
+<span class="sd">      files: A dictionary mapping file names to file paths.</span>
+<span class="sd">      data: A dictionary of additional data to be passed to the service.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      The job ID of the submitted job.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      HTTPError: If the API request fails.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Filter out data fields with value &#39;false&#39;</span>
+    <span class="n">filtered_data</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">v</span> <span class="o">!=</span> <span class="s2">&quot;false&quot;</span><span class="p">}</span>
+
+    <span class="c1"># Open the files in binary mode</span>
+    <span class="n">files_dict</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="nb">open</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">files</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+
+    <span class="c1"># Make the POST request</span>
+    <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">BASE_URL</span><span class="si">}</span><span class="s2">/job/submit/</span><span class="si">{</span><span class="n">service_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">headers</span><span class="p">,</span> <span class="n">files</span><span class="o">=</span><span class="n">files_dict</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">filtered_data</span><span class="p">)</span>
+
+    <span class="k">assert</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">200</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Expected status code 200, got </span><span class="si">{</span><span class="n">response</span><span class="o">.</span><span class="n">status_code</span><span class="si">}</span><span class="s2">&quot;</span>
+
+    <span class="c1"># Return the job ID</span>
+    <span class="k">return</span> <span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="NeurosnapAPI.get_job_status">
+<a class="viewcode-back" href="../../neurosnap.html#neurosnap.api.NeurosnapAPI.get_job_status">[docs]</a>
+  <span class="k">def</span> <span class="nf">get_job_status</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Fetches the status of a specified job.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">      job_id: The ID of the job.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      The status of the job.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      HTTPError: If the API request fails.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">BASE_URL</span><span class="si">}</span><span class="s2">/job/status/</span><span class="si">{</span><span class="n">job_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">headers</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">200</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Expected status code 200, got </span><span class="si">{</span><span class="n">response</span><span class="o">.</span><span class="n">status_code</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="k">return</span> <span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="NeurosnapAPI.get_job_files">
+<a class="viewcode-back" href="../../neurosnap.html#neurosnap.api.NeurosnapAPI.get_job_files">[docs]</a>
+  <span class="k">def</span> <span class="nf">get_job_files</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">file_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">share_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">format_type</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Fetches all files from a completed Neurosnap job and optionally prints them.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">      job_id: The ID of the job.</span>
+<span class="sd">      file_type: The type of files to fetch.</span>
+<span class="sd">      share_id: The share ID, if any.</span>
+<span class="sd">      format_type:</span>
+<span class="sd">        - &quot;table&quot;: Prints the files in a tabular format.</span>
+<span class="sd">        - &quot;json&quot;: Prints the files in formatted JSON.</span>
+<span class="sd">        - None (default): No printing.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A list of file names from the job.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      HTTPError: If the API request fails.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Construct the URL for the request</span>
+    <span class="n">url</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">BASE_URL</span><span class="si">}</span><span class="s2">/job/files/</span><span class="si">{</span><span class="n">job_id</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">file_type</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="k">if</span> <span class="n">share_id</span><span class="p">:</span>
+      <span class="n">url</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;?share=</span><span class="si">{</span><span class="n">share_id</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="c1"># Make the request and check the status</span>
+    <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">headers</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">200</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Expected status code 200, got </span><span class="si">{</span><span class="n">response</span><span class="o">.</span><span class="n">status_code</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="c1"># Parse the response</span>
+    <span class="n">files</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+    <span class="c1"># Optionally format the output based on the format_type</span>
+    <span class="n">format_type</span> <span class="o">=</span> <span class="n">format_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">format_type</span> <span class="o">==</span> <span class="s2">&quot;table&quot;</span><span class="p">:</span>
+      <span class="c1"># Print the file details in a table format</span>
+      <span class="nb">print</span><span class="p">(</span><span class="n">tabulate</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;File Name&quot;</span><span class="p">,</span> <span class="s2">&quot;File Size&quot;</span><span class="p">]))</span>
+    <span class="k">elif</span> <span class="n">format_type</span> <span class="o">==</span> <span class="s2">&quot;json&quot;</span><span class="p">:</span>
+      <span class="c1"># Print the file details in JSON format</span>
+      <span class="nb">print</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">files</span></div>
+
+
+<div class="viewcode-block" id="NeurosnapAPI.get_job_file">
+<a class="viewcode-back" href="../../neurosnap.html#neurosnap.api.NeurosnapAPI.get_job_file">[docs]</a>
+  <span class="k">def</span> <span class="nf">get_job_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">file_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">file_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">save_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">share_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Fetches a specific file from a completed Neurosnap job and saves it to the specified path.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">      job_id: The ID of the job.</span>
+<span class="sd">      file_type: The type of file to fetch.</span>
+<span class="sd">      file_name: The name of the specific file to fetch.</span>
+<span class="sd">      save_path: The path where the file content will be saved.</span>
+<span class="sd">      share_id: The share ID, if any.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Tuple of the form ``(save_path, download_succeeded)``</span>
+
+<span class="sd">        - ``save_path``: The path where the file is saved.</span>
+<span class="sd">        - ``download_succeeded``: True if the file was downloaded successfully, False otherwise.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      HTTPError: If the API request fails.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Construct the URL for the request</span>
+    <span class="n">url</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">BASE_URL</span><span class="si">}</span><span class="s2">/job/file/</span><span class="si">{</span><span class="n">job_id</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">file_type</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">file_name</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="k">if</span> <span class="n">share_id</span><span class="p">:</span>
+      <span class="n">url</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;?share=</span><span class="si">{</span><span class="n">share_id</span><span class="si">}</span><span class="s2">&quot;</span>
+
+    <span class="c1"># Make the request and check the status</span>
+    <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">headers</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">200</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Expected status code 200, got </span><span class="si">{</span><span class="n">response</span><span class="o">.</span><span class="n">status_code</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+      <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">save_path</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
+      <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;File saved to </span><span class="si">{</span><span class="n">save_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">save_path</span><span class="p">,</span> <span class="kc">True</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+      <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to save file: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">save_path</span><span class="p">,</span> <span class="kc">False</span></div>
+
+
+<div class="viewcode-block" id="NeurosnapAPI.set_job_note">
+<a class="viewcode-back" href="../../neurosnap.html#neurosnap.api.NeurosnapAPI.set_job_note">[docs]</a>
+  <span class="k">def</span> <span class="nf">set_job_note</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">note</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Set a note for a submitted job.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">      job_id: The ID of the job for which the note will be set.</span>
+<span class="sd">      note: The note to be associated with the job.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Prepare the request data</span>
+    <span class="n">payload</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;job_id&quot;</span><span class="p">:</span> <span class="n">job_id</span><span class="p">,</span> <span class="s2">&quot;note&quot;</span><span class="p">:</span> <span class="n">note</span><span class="p">}</span>
+    <span class="c1"># Send the POST request</span>
+    <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">BASE_URL</span><span class="si">}</span><span class="s2">/job/note/set&quot;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">headers</span><span class="p">,</span> <span class="n">json</span><span class="o">=</span><span class="n">payload</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">200</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Expected status code 200, got </span><span class="si">{</span><span class="n">response</span><span class="o">.</span><span class="n">status_code</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Note set successfully for job ID </span><span class="si">{</span><span class="n">job_id</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="NeurosnapAPI.set_job_share">
+<a class="viewcode-back" href="../../neurosnap.html#neurosnap.api.NeurosnapAPI.set_job_share">[docs]</a>
+  <span class="k">def</span> <span class="nf">set_job_share</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Enables the sharing feature of a job and makes it public.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">      job_id: The ID of the job to be made public.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      The JSON response containing the share ID.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Send the request to set job share</span>
+    <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">BASE_URL</span><span class="si">}</span><span class="s2">/job/share/set/</span><span class="si">{</span><span class="n">job_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">headers</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">200</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Expected status code 200, got </span><span class="si">{</span><span class="n">response</span><span class="o">.</span><span class="n">status_code</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="k">return</span> <span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>  <span class="c1"># Return the JSON output containing the share ID</span></div>
+
+
+<div class="viewcode-block" id="NeurosnapAPI.delete_job_share">
+<a class="viewcode-back" href="../../neurosnap.html#neurosnap.api.NeurosnapAPI.delete_job_share">[docs]</a>
+  <span class="k">def</span> <span class="nf">delete_job_share</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Disables the sharing feature of a job and makes the job private.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">      job_id: The ID of the job to be made private.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Send the request to delete job share</span>
+    <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">BASE_URL</span><span class="si">}</span><span class="s2">/job/share/delete/</span><span class="si">{</span><span class="n">job_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">headers</span><span class="p">)</span>
+
+    <span class="k">assert</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">200</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Expected status code 200, got </span><span class="si">{</span><span class="n">response</span><span class="o">.</span><span class="n">status_code</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Job ID </span><span class="si">{</span><span class="n">job_id</span><span class="si">}</span><span class="s2"> is now private.&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="NeurosnapAPI.get_team_info">
+<a class="viewcode-back" href="../../neurosnap.html#neurosnap.api.NeurosnapAPI.get_team_info">[docs]</a>
+  <span class="k">def</span> <span class="nf">get_team_info</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">format_type</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Fetches your team&#39;s information if you are part of a Neurosnap Team.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">      format_type: The format to print the response: &#39;table&#39;, &#39;json&#39;, or None for no output.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      The team information.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      HTTPError: If the API request fails.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">BASE_URL</span><span class="si">}</span><span class="s2">/teams/info&quot;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">headers</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">200</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Expected status code 200, got </span><span class="si">{</span><span class="n">response</span><span class="o">.</span><span class="n">status_code</span><span class="si">}</span><span class="s2">&quot;</span>
+
+    <span class="n">team_info</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+    <span class="n">format_type</span> <span class="o">=</span> <span class="n">format_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">format_type</span> <span class="o">==</span> <span class="s2">&quot;table&quot;</span><span class="p">:</span>
+      <span class="c1"># Prepare data for tabulation</span>
+      <span class="n">members_table</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">[</span>
+          <span class="n">member</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;ID&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">),</span>
+          <span class="n">member</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Name&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">),</span>
+          <span class="n">member</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Email&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">),</span>
+          <span class="n">member</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;LastLogin&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">),</span>
+          <span class="n">member</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;EmailVerified&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">),</span>
+          <span class="n">member</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Leader&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">),</span>
+        <span class="p">]</span>
+        <span class="k">for</span> <span class="n">member</span> <span class="ow">in</span> <span class="n">team_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;members&quot;</span><span class="p">,</span> <span class="p">[])</span>
+      <span class="p">]</span>
+      <span class="c1"># Print the team info in table format</span>
+      <span class="nb">print</span><span class="p">(</span><span class="n">tabulate</span><span class="p">(</span><span class="n">members_table</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;ID&quot;</span><span class="p">,</span> <span class="s2">&quot;Name&quot;</span><span class="p">,</span> <span class="s2">&quot;Email&quot;</span><span class="p">,</span> <span class="s2">&quot;Last Login&quot;</span><span class="p">,</span> <span class="s2">&quot;Email Verified&quot;</span><span class="p">,</span> <span class="s2">&quot;Leader&quot;</span><span class="p">],</span> <span class="n">tablefmt</span><span class="o">=</span><span class="s2">&quot;grid&quot;</span><span class="p">))</span>
+      <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Team Name: </span><span class="si">{</span><span class="n">team_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+      <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Jobs Count: </span><span class="si">{</span><span class="n">team_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;jobsCount&#39;</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+      <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Max Seats: </span><span class="si">{</span><span class="n">team_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;seatsMax&#39;</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+      <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Is Leader: </span><span class="si">{</span><span class="n">team_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;is_leader&#39;</span><span class="p">,</span><span class="w"> </span><span class="kc">False</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">format_type</span> <span class="o">==</span> <span class="s2">&quot;json&quot;</span><span class="p">:</span>
+      <span class="c1"># Print the team information in JSON format</span>
+      <span class="nb">print</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">team_info</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">team_info</span></div>
+
+
+<div class="viewcode-block" id="NeurosnapAPI.get_team_jobs">
+<a class="viewcode-back" href="../../neurosnap.html#neurosnap.api.NeurosnapAPI.get_team_jobs">[docs]</a>
+  <span class="k">def</span> <span class="nf">get_team_jobs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">format_type</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Fetches all the jobs submitted by all members of your Neurosnap Team.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">      format_type: The format to print the response: &#39;table&#39;, &#39;JSON&#39;, or None for no output.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A list of jobs submitted by the team members.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      HTTPError: If the API request fails.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">BASE_URL</span><span class="si">}</span><span class="s2">/teams/jobs&quot;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">headers</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">200</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Expected status code 200, got </span><span class="si">{</span><span class="n">response</span><span class="o">.</span><span class="n">status_code</span><span class="si">}</span><span class="s2">&quot;</span>
+
+    <span class="n">jobs</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">job</span> <span class="ow">in</span> <span class="n">jobs</span><span class="p">:</span>
+      <span class="k">if</span> <span class="s2">&quot;Submitted&quot;</span> <span class="ow">in</span> <span class="n">job</span><span class="p">:</span>
+        <span class="n">timestamp</span> <span class="o">=</span> <span class="n">job</span><span class="p">[</span><span class="s2">&quot;Submitted&quot;</span><span class="p">]</span> <span class="o">//</span> <span class="mi">1000</span>  <span class="c1"># Convert milliseconds to seconds</span>
+        <span class="n">job</span><span class="p">[</span><span class="s2">&quot;Submitted&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">fromtimestamp</span><span class="p">(</span><span class="n">timestamp</span><span class="p">)</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">format_type</span> <span class="o">=</span> <span class="n">format_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">format_type</span> <span class="o">==</span> <span class="s2">&quot;table&quot;</span><span class="p">:</span>
+      <span class="nb">print</span><span class="p">(</span><span class="n">tabulate</span><span class="p">(</span><span class="n">jobs</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="s2">&quot;keys&quot;</span><span class="p">))</span>
+    <span class="k">elif</span> <span class="n">format_type</span> <span class="o">==</span> <span class="s2">&quot;json&quot;</span><span class="p">:</span>
+      <span class="nb">print</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">jobs</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">jobs</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Keaun Amani.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

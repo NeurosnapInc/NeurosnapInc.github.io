@@ -1,0 +1,350 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>neurosnap.conformers &mdash; neurosnap 0.0.64 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=b153cf10"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            neurosnap
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../neurosnap.html">neurosnap package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">neurosnap</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">neurosnap.conformers</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for neurosnap.conformers</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Provides functions and classes related to processing and generating conformers.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Any</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">rdkit</span>
+<span class="kn">from</span> <span class="nn">rdkit</span> <span class="kn">import</span> <span class="n">Chem</span>
+<span class="kn">from</span> <span class="nn">rdkit.Chem</span> <span class="kn">import</span> <span class="n">AllChem</span><span class="p">,</span> <span class="n">rdDistGeom</span><span class="p">,</span> <span class="n">rdFMCS</span><span class="p">,</span> <span class="n">rdMolAlign</span>
+<span class="kn">from</span> <span class="nn">rdkit.ML.Cluster</span> <span class="kn">import</span> <span class="n">Butina</span>
+
+<span class="kn">from</span> <span class="nn">neurosnap.log</span> <span class="kn">import</span> <span class="n">logger</span>
+
+
+<div class="viewcode-block" id="find_LCS">
+<a class="viewcode-back" href="../../neurosnap.html#neurosnap.conformers.find_LCS">[docs]</a>
+<span class="k">def</span> <span class="nf">find_LCS</span><span class="p">(</span><span class="n">mol</span><span class="p">:</span> <span class="n">Chem</span><span class="o">.</span><span class="n">rdchem</span><span class="o">.</span><span class="n">Mol</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Chem</span><span class="o">.</span><span class="n">rdchem</span><span class="o">.</span><span class="n">Mol</span><span class="p">:</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;Find the largest common substructure (LCS) between a</span>
+<span class="sd">  set of conformers and aligns all conformers to the LCS.</span>
+
+<span class="sd">  Parameters:</span>
+<span class="sd">    mol: Input RDkit molecule object, must already have conformers present</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    Resultant molecule object with all conformers aligned to the LCS</span>
+
+<span class="sd">  Raises:</span>
+<span class="sd">    Exception: if no LCS is detected</span>
+
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Finding largest common substructure (LCS) for clustering&quot;</span><span class="p">)</span>
+  <span class="c1"># Convert the molecule to a list of molecules (each conformer treated as a separate molecule)</span>
+  <span class="n">conformer_mols</span> <span class="o">=</span> <span class="p">[]</span>
+  <span class="k">for</span> <span class="n">conf</span> <span class="ow">in</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetConformers</span><span class="p">():</span>
+    <span class="n">new_mol</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">Mol</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
+    <span class="n">new_mol</span><span class="o">.</span><span class="n">RemoveAllConformers</span><span class="p">()</span>
+    <span class="n">new_mol</span><span class="o">.</span><span class="n">AddConformer</span><span class="p">(</span><span class="n">conf</span><span class="p">,</span> <span class="n">assignId</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">conformer_mols</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_mol</span><span class="p">)</span>
+
+  <span class="c1"># Perform MCS (Maximum Common Substructure) search</span>
+  <span class="n">mcs_result</span> <span class="o">=</span> <span class="n">rdFMCS</span><span class="o">.</span><span class="n">FindMCS</span><span class="p">(</span><span class="n">conformer_mols</span><span class="p">,</span> <span class="n">completeRingsOnly</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">ringMatchesRingOnly</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+  <span class="n">core</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolFromSmarts</span><span class="p">(</span><span class="n">mcs_result</span><span class="o">.</span><span class="n">smartsString</span><span class="p">)</span>
+
+  <span class="c1"># Check if a core substructure was found</span>
+  <span class="k">assert</span> <span class="n">core</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">core</span><span class="o">.</span><span class="n">GetNumAtoms</span><span class="p">(),</span> <span class="s2">&quot;No core substructure detected. Aligning using first conformer.&quot;</span>
+
+  <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Core substructure detected. Aligning using core.&quot;</span><span class="p">)</span>
+  <span class="n">AllChem</span><span class="o">.</span><span class="n">AlignMolConformers</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetSubstructMatch</span><span class="p">(</span><span class="n">core</span><span class="p">))</span>
+  <span class="k">return</span> <span class="n">mol</span></div>
+
+
+
+<div class="viewcode-block" id="minimize">
+<a class="viewcode-back" href="../../neurosnap.html#neurosnap.conformers.minimize">[docs]</a>
+<span class="k">def</span> <span class="nf">minimize</span><span class="p">(</span><span class="n">mol</span><span class="p">:</span> <span class="n">Chem</span><span class="o">.</span><span class="n">rdchem</span><span class="o">.</span><span class="n">Mol</span><span class="p">,</span> <span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;MMFF94&quot;</span><span class="p">,</span> <span class="n">percentile</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">100.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]:</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;Minimize conformer energy (kcal/mol) using RDkit</span>
+<span class="sd">  and filter out conformers based on energy percentile.</span>
+
+<span class="sd">  Parameters:</span>
+<span class="sd">    mol: RDkit mol object containing the conformers you want to minimize. (rdkit.Chem.rdchem.Mol)</span>
+<span class="sd">    method: Can be either UFF, MMFF94, or MMFF94s (str)</span>
+<span class="sd">    percentile: Filters out conformers above a given energy percentile (0 to 100). For example, 10.0 will retain conformers within the lowest 10% energy. (float)</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A tuple of the form ``(mol_filtered, energies)``</span>
+
+<span class="sd">    - ``mol_filtered``: Molecule object with filtered conformers.</span>
+<span class="sd">    - ``energies``: Dictionary where keys are conformer IDs and values are calculated energies in kcal/mol.</span>
+
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Minimizing energy of all conformers using </span><span class="si">{</span><span class="n">method</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+  <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">mol</span><span class="o">.</span><span class="n">GetNumConformers</span><span class="p">()):</span>
+    <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;UFF&quot;</span><span class="p">:</span>
+      <span class="n">AllChem</span><span class="o">.</span><span class="n">UFFOptimizeMolecule</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">confId</span><span class="o">=</span><span class="n">i</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;MMFF94&quot;</span><span class="p">:</span>
+      <span class="n">AllChem</span><span class="o">.</span><span class="n">MMFFOptimizeMolecule</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">confId</span><span class="o">=</span><span class="n">i</span><span class="p">,</span> <span class="n">mmffVariant</span><span class="o">=</span><span class="s2">&quot;MMFF94&quot;</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;MMFF94s&quot;</span><span class="p">:</span>
+      <span class="n">AllChem</span><span class="o">.</span><span class="n">MMFFOptimizeMolecule</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">confId</span><span class="o">=</span><span class="n">i</span><span class="p">,</span> <span class="n">mmffVariant</span><span class="o">=</span><span class="s2">&quot;MMFF94s&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Invalid minimization method passed </span><span class="si">{</span><span class="n">method</span><span class="si">}</span><span class="s1">. Must be either &quot;UFF&quot;, &quot;MMFF94&quot;, or &quot;MMFF94s&quot;.&#39;</span><span class="p">)</span>
+
+  <span class="c1"># Calculate energies for all conformers</span>
+  <span class="n">energies</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># keys are conformer IDs, values are calculated energies.</span>
+  <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">mol</span><span class="o">.</span><span class="n">GetNumConformers</span><span class="p">()):</span>
+    <span class="n">ff</span> <span class="o">=</span> <span class="n">AllChem</span><span class="o">.</span><span class="n">MMFFGetMoleculeForceField</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">AllChem</span><span class="o">.</span><span class="n">MMFFGetMoleculeProperties</span><span class="p">(</span><span class="n">mol</span><span class="p">),</span> <span class="n">confId</span><span class="o">=</span><span class="n">i</span><span class="p">)</span>
+    <span class="n">energies</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">ff</span><span class="o">.</span><span class="n">CalcEnergy</span><span class="p">()</span>
+
+  <span class="c1"># Determine the energy threshold based on the specified percentile</span>
+  <span class="n">energy_values</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">energies</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+  <span class="n">energy_threshold</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">percentile</span><span class="p">(</span><span class="n">energy_values</span><span class="p">,</span> <span class="n">percentile</span><span class="p">)</span>
+
+  <span class="c1"># Filter out conformers above the energy threshold</span>
+  <span class="n">mol_filtered</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">Mol</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>  <span class="c1"># Copy the molecule structure</span>
+  <span class="n">mol_filtered</span><span class="o">.</span><span class="n">RemoveAllConformers</span><span class="p">()</span>  <span class="c1"># Remove all conformers from the copy</span>
+  <span class="n">energies_filtered</span> <span class="o">=</span> <span class="p">{}</span>
+  <span class="n">num_filtered</span> <span class="o">=</span> <span class="mi">0</span>
+  <span class="k">for</span> <span class="n">conf_id</span><span class="p">,</span> <span class="n">energy</span> <span class="ow">in</span> <span class="n">energies</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+    <span class="k">if</span> <span class="n">energy</span> <span class="o">&lt;=</span> <span class="n">energy_threshold</span><span class="p">:</span>
+      <span class="n">num_filtered</span> <span class="o">+=</span> <span class="mi">1</span>
+      <span class="n">conformer</span> <span class="o">=</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetConformer</span><span class="p">(</span><span class="n">conf_id</span><span class="p">)</span>
+      <span class="n">new_conf_id</span> <span class="o">=</span> <span class="n">mol_filtered</span><span class="o">.</span><span class="n">AddConformer</span><span class="p">(</span><span class="n">conformer</span><span class="p">,</span> <span class="n">assignId</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># Add the filtered conformer to the new molecule</span>
+      <span class="n">energies_filtered</span><span class="p">[</span><span class="n">new_conf_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">energy</span>
+
+  <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Filtered </span><span class="si">{</span><span class="n">num_filtered</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> conformers within the lowest </span><span class="si">{</span><span class="n">percentile</span><span class="si">}</span><span class="s2">% of energies.&quot;</span><span class="p">)</span>
+  <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;min: </span><span class="si">{</span><span class="nb">min</span><span class="p">(</span><span class="n">energy_values</span><span class="p">)</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">, max: </span><span class="si">{</span><span class="nb">max</span><span class="p">(</span><span class="n">energy_values</span><span class="p">)</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">, avg: </span><span class="si">{</span><span class="nb">sum</span><span class="p">(</span><span class="n">energy_values</span><span class="p">)</span><span class="o">/</span><span class="nb">len</span><span class="p">(</span><span class="n">energy_values</span><span class="p">)</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">mol_filtered</span><span class="p">,</span> <span class="n">energies_filtered</span></div>
+
+
+
+<div class="viewcode-block" id="generate">
+<a class="viewcode-back" href="../../neurosnap.html#neurosnap.conformers.generate">[docs]</a>
+<span class="k">def</span> <span class="nf">generate</span><span class="p">(</span>
+  <span class="n">input_mol</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+  <span class="n">output_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;unique_conformers&quot;</span><span class="p">,</span>
+  <span class="n">write_multi</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+  <span class="n">num_confs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">,</span>
+  <span class="n">min_method</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;MMFF94&quot;</span><span class="p">,</span>
+  <span class="n">max_atoms</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">500</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;Generate conformers for an input molecule.</span>
+
+<span class="sd">  Performs the following actions in order:</span>
+<span class="sd">  1. Generate conformers using ETKDG method</span>
+<span class="sd">  2. Minimize energy of all conformers and remove those below a dynamic threshold</span>
+<span class="sd">  3. Align &amp; create RMSD matrix of all conformers</span>
+<span class="sd">  4. Clusters using Butina method to remove structurally redundant conformers</span>
+<span class="sd">  5. Return most energetically favorable conformers in each cluster</span>
+
+<span class="sd">  Parameters:</span>
+<span class="sd">    input_mol: Input molecule can be a path to a molecule file, a SMILES string, or an instance of rdkit.Chem.rdchem.Mol</span>
+<span class="sd">    output_name: Output to write SDF files of passing conformers</span>
+<span class="sd">    write_multi: If True will write all unique conformers to a single SDF file, if False will write all unique conformers in separate SDF files in output_name</span>
+<span class="sd">    num_confs: Number of conformers to generate</span>
+<span class="sd">    min_method: Method for minimization, can be either UFF, MMFF94, MMFF94s, or None for no minimization</span>
+<span class="sd">    max_atoms: Maximum number of atoms allowed for the input molecule</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A dataframe with all conformer statistics</span>
+
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="c1">### parse input and construct corresponding RDkit mol object</span>
+  <span class="n">my_mol</span> <span class="o">=</span> <span class="kc">None</span>
+  <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_mol</span><span class="p">,</span> <span class="n">rdkit</span><span class="o">.</span><span class="n">Chem</span><span class="o">.</span><span class="n">rdchem</span><span class="o">.</span><span class="n">Mol</span><span class="p">):</span>
+    <span class="n">my_mol</span> <span class="o">=</span> <span class="n">input_mol</span>
+  <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_mol</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">input_mol</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.pdb&quot;</span><span class="p">):</span>
+      <span class="n">my_mol</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolFromPDBFile</span><span class="p">(</span><span class="n">input_mol</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">input_mol</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.sdf&quot;</span><span class="p">):</span>
+      <span class="k">for</span> <span class="n">mol</span> <span class="ow">in</span> <span class="n">Chem</span><span class="o">.</span><span class="n">SDMolSupplier</span><span class="p">(</span><span class="n">input_mol</span><span class="p">):</span>  <span class="c1"># get first valid molecule if exists</span>
+        <span class="k">if</span> <span class="n">mol</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+          <span class="n">my_mol</span> <span class="o">=</span> <span class="n">mol</span>
+          <span class="k">break</span>
+      <span class="k">assert</span> <span class="n">my_mol</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;Unable to find a valid molecule in the provided SDF file.&quot;</span>
+    <span class="k">else</span><span class="p">:</span>  <span class="c1"># assume smiles</span>
+      <span class="n">my_mol</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolFromSmiles</span><span class="p">(</span><span class="n">input_mol</span><span class="p">)</span>
+      <span class="k">assert</span> <span class="n">my_mol</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Invalid smiles string provided </span><span class="si">{</span><span class="n">input_mol</span><span class="si">}</span><span class="s2">&quot;</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+      <span class="s2">&quot;Invalid input type for input_mol. Input molecule can be a path to a molecule file, a SMILES string, or an instance of rdkit.Chem.rdchem.Mol&quot;</span>
+    <span class="p">)</span>
+
+  <span class="c1"># Add hydrogens to molecule to generate a more accurate 3D structure</span>
+  <span class="n">my_mol</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">AddHs</span><span class="p">(</span><span class="n">my_mol</span><span class="p">)</span>
+
+  <span class="c1"># Check if the number of atoms exceeds max_atoms</span>
+  <span class="k">if</span> <span class="n">my_mol</span><span class="o">.</span><span class="n">GetNumAtoms</span><span class="p">()</span> <span class="o">&gt;</span> <span class="n">max_atoms</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+      <span class="sa">f</span><span class="s2">&quot;Input molecule exceeds the maximum allowed atoms (</span><span class="si">{</span><span class="n">max_atoms</span><span class="si">}</span><span class="s2">). It has </span><span class="si">{</span><span class="n">my_mol</span><span class="o">.</span><span class="n">GetNumAtoms</span><span class="p">()</span><span class="si">}</span><span class="s2"> atoms. For proteins try using a different service such as the AFcluster and AlphaFlow tools on Neurosnap.&quot;</span>
+    <span class="p">)</span>
+
+  <span class="c1">### Generate 3D conformers</span>
+  <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Generating </span><span class="si">{</span><span class="n">num_confs</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> 3D conformers.&quot;</span><span class="p">)</span>
+  <span class="n">params</span> <span class="o">=</span> <span class="n">AllChem</span><span class="o">.</span><span class="n">ETKDGv3</span><span class="p">()</span>
+  <span class="n">params</span><span class="o">.</span><span class="n">numThreads</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># Will use all available CPU cores</span>
+  <span class="n">params</span><span class="o">.</span><span class="n">forceTol</span> <span class="o">=</span> <span class="mf">0.0001</span>  <span class="c1"># Indirectly increases embedding attempts</span>
+  <span class="n">params</span><span class="o">.</span><span class="n">useRandomCoords</span> <span class="o">=</span> <span class="kc">True</span>  <span class="c1"># Fallback to random coordinates if necessary</span>
+  <span class="n">params</span><span class="o">.</span><span class="n">pruneRmsThresh</span> <span class="o">=</span> <span class="mf">0.1</span>  <span class="c1"># Allow some deviation to increase conformer count</span>
+  <span class="n">rdDistGeom</span><span class="o">.</span><span class="n">EmbedMultipleConfs</span><span class="p">(</span><span class="n">my_mol</span><span class="p">,</span> <span class="n">numConfs</span><span class="o">=</span><span class="n">num_confs</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">)</span>  <span class="c1"># NOTE: maxAttempts=100 was removed as does not work with ETKDGv3</span>
+  <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Generated </span><span class="si">{</span><span class="n">my_mol</span><span class="o">.</span><span class="n">GetNumConformers</span><span class="p">()</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> 3D conformers.&quot;</span><span class="p">)</span>
+
+  <span class="c1">### Minimize energy of each conformer</span>
+  <span class="k">if</span> <span class="n">min_method</span><span class="p">:</span>
+    <span class="n">my_mol</span><span class="p">,</span> <span class="n">energies</span> <span class="o">=</span> <span class="n">minimize</span><span class="p">(</span><span class="n">my_mol</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">min_method</span><span class="p">)</span>
+
+  <span class="c1">### Clustering</span>
+  <span class="c1">## Calculate the RMSD matrix between all pairs of conformers</span>
+  <span class="n">dists</span> <span class="o">=</span> <span class="p">[]</span>
+  <span class="n">num_conformers</span> <span class="o">=</span> <span class="n">my_mol</span><span class="o">.</span><span class="n">GetNumConformers</span><span class="p">()</span>
+  <span class="n">my_mol_nh</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">RemoveHs</span><span class="p">(</span><span class="n">my_mol</span><span class="p">)</span>  <span class="c1"># remove hydrogens as it interferes with following steps</span>
+  <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_conformers</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span><span class="p">):</span>
+      <span class="n">dists</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rdMolAlign</span><span class="o">.</span><span class="n">GetBestRMS</span><span class="p">(</span><span class="n">my_mol_nh</span><span class="p">,</span> <span class="n">my_mol_nh</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">))</span>
+
+  <span class="c1">## Perform clustering using Butina approach</span>
+  <span class="c1"># Calculate the dynamic threshold based on molecule size (distance threshold in Å for Butina)</span>
+  <span class="n">num_heavy_atoms</span> <span class="o">=</span> <span class="n">my_mol</span><span class="o">.</span><span class="n">GetNumHeavyAtoms</span><span class="p">()</span>
+  <span class="n">c</span> <span class="o">=</span> <span class="mf">0.2</span>  <span class="c1"># Constant, can be adjusted based on needs</span>
+  <span class="n">threshold</span> <span class="o">=</span> <span class="n">c</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">num_heavy_atoms</span><span class="p">)</span>
+  <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Dynamic RMSD threshold: </span><span class="si">{</span><span class="n">threshold</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> Å&quot;</span><span class="p">)</span>
+
+  <span class="c1"># perform clustering</span>
+  <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Clustering </span><span class="si">{</span><span class="n">num_conformers</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> conformers.&quot;</span><span class="p">)</span>
+  <span class="n">clusters</span> <span class="o">=</span> <span class="n">Butina</span><span class="o">.</span><span class="n">ClusterData</span><span class="p">(</span><span class="n">dists</span><span class="p">,</span> <span class="n">num_conformers</span><span class="p">,</span> <span class="n">threshold</span><span class="p">,</span> <span class="n">isDistData</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">reordering</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+  <span class="c1"># get most favorable representatives for each cluster using calculated energy</span>
+  <span class="n">output</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;conformer_id&quot;</span><span class="p">:</span> <span class="p">[],</span>
+    <span class="s2">&quot;cluster_id&quot;</span><span class="p">:</span> <span class="p">[],</span>
+    <span class="s2">&quot;energy&quot;</span><span class="p">:</span> <span class="p">[],</span>
+    <span class="s2">&quot;cluster_size&quot;</span><span class="p">:</span> <span class="p">[],</span>
+  <span class="p">}</span>
+  <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">cluster</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">clusters</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    <span class="n">best_energy</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;inf&quot;</span><span class="p">)</span>
+    <span class="n">best_cid</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">min_method</span><span class="p">:</span>
+      <span class="k">for</span> <span class="n">cid</span> <span class="ow">in</span> <span class="n">cluster</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">energies</span><span class="p">[</span><span class="n">cid</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">best_energy</span><span class="p">:</span>
+          <span class="n">best_cid</span> <span class="o">=</span> <span class="n">cid</span>
+          <span class="n">best_energy</span> <span class="o">=</span> <span class="n">energies</span><span class="p">[</span><span class="n">cid</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>  <span class="c1"># if no min_method / energies available just take the first cluster</span>
+      <span class="n">best_cid</span> <span class="o">=</span> <span class="n">cluster</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+      <span class="n">best_energy</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Cluster ID: </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">, Best Conformer: </span><span class="si">{</span><span class="n">best_cid</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">best_energy</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">), Conformers </span><span class="si">{</span><span class="n">cluster</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">output</span><span class="p">[</span><span class="s2">&quot;conformer_id&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">best_cid</span><span class="p">)</span>
+    <span class="n">output</span><span class="p">[</span><span class="s2">&quot;cluster_id&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+    <span class="n">output</span><span class="p">[</span><span class="s2">&quot;energy&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">best_energy</span><span class="p">)</span>
+    <span class="n">output</span><span class="p">[</span><span class="s2">&quot;cluster_size&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">cluster</span><span class="p">))</span>
+
+  <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
+  <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Selected </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="si">}</span><span class="s2"> unique conformers.&quot;</span><span class="p">)</span>
+  <span class="nb">print</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+
+  <span class="c1">## Write output</span>
+  <span class="k">if</span> <span class="n">write_multi</span><span class="p">:</span>  <span class="c1"># write to single SDF file</span>
+    <span class="k">with</span> <span class="n">Chem</span><span class="o">.</span><span class="n">SDWriter</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">output_name</span><span class="si">}</span><span class="s2">.sdf&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">w</span><span class="p">:</span>
+      <span class="k">for</span> <span class="n">conf_id</span> <span class="ow">in</span> <span class="n">output</span><span class="p">[</span><span class="s2">&quot;conformer_id&quot;</span><span class="p">]:</span>
+        <span class="n">w</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">my_mol</span><span class="p">,</span> <span class="n">confId</span><span class="o">=</span><span class="n">conf_id</span><span class="p">)</span>
+  <span class="k">else</span><span class="p">:</span>  <span class="c1"># write to single separate SDF files</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">output_name</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">conf_id</span> <span class="ow">in</span> <span class="n">output</span><span class="p">[</span><span class="s2">&quot;conformer_id&quot;</span><span class="p">]:</span>
+      <span class="k">with</span> <span class="n">Chem</span><span class="o">.</span><span class="n">SDWriter</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_name</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;conformer_</span><span class="si">{</span><span class="n">conf_id</span><span class="si">}</span><span class="s2">.sdf&quot;</span><span class="p">))</span> <span class="k">as</span> <span class="n">w</span><span class="p">:</span>
+        <span class="n">w</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">my_mol</span><span class="p">,</span> <span class="n">confId</span><span class="o">=</span><span class="n">conf_id</span><span class="p">)</span>
+
+  <span class="k">return</span> <span class="n">df</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Keaun Amani.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

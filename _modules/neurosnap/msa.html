@@ -1,0 +1,878 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>neurosnap.msa &mdash; neurosnap 0.0.64 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=b153cf10"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            neurosnap
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../neurosnap.html">neurosnap package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">neurosnap</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">neurosnap.msa</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for neurosnap.msa</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Provides functions and classes related to processing protein sequence data.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">io</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">shutil</span>
+<span class="kn">import</span> <span class="nn">subprocess</span>
+<span class="kn">import</span> <span class="nn">tarfile</span>
+<span class="kn">import</span> <span class="nn">tempfile</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">Counter</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Optional</span>
+
+<span class="kn">import</span> <span class="nn">requests</span>
+<span class="kn">from</span> <span class="nn">Bio</span> <span class="kn">import</span> <span class="n">SearchIO</span>
+
+<span class="kn">from</span> <span class="nn">neurosnap.api</span> <span class="kn">import</span> <span class="n">USER_AGENT</span>
+<span class="kn">from</span> <span class="nn">neurosnap.log</span> <span class="kn">import</span> <span class="n">logger</span>
+<span class="kn">from</span> <span class="nn">neurosnap.protein</span> <span class="kn">import</span> <span class="n">STANDARD_AAs</span>
+
+<span class="c1">### CONSTANTS ###</span>
+<span class="n">MMSEQS2_CITATION</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;The MMseqs2 webserver used to generate this MSA is offered as a free service. Please support the authors in maintaining this free resource by citing them appropriately as follows:</span>
+<span class="s2">@article{Mirdita2019,</span>
+<span class="s2">  title        = {{MMseqs2 desktop and local web server app for fast, interactive sequence searches}},</span>
+<span class="s2">  author       = {Mirdita, Milot and Steinegger, Martin and S{&quot;</span><span class="si">{o}</span><span class="s2">}ding, Johannes},</span>
+<span class="s2">  year         = 2019,</span>
+<span class="s2">  journal      = </span><span class="si">{Bioinformatics}</span><span class="s2">,</span>
+<span class="s2">  volume       = 35,</span>
+<span class="s2">  number       = 16,</span>
+<span class="s2">  pages        = {2856--2858},</span>
+<span class="s2">  doi          = {10.1093/bioinformatics/bty1057},</span>
+<span class="s2">  pmid         = 30615063,</span>
+<span class="s2">  comment      = {MMseqs2 search server}</span>
+<span class="s2">}</span>
+<span class="s2">@article{Mirdita2017,</span>
+<span class="s2">  title        = {{Uniclust databases of clustered and deeply annotated protein sequences and alignments}},</span>
+<span class="s2">  author       = {Mirdita, Milot and von den Driesch, Lars and Galiez, Clovis and Martin, Maria J. and S{&quot;</span><span class="si">{o}</span><span class="s2">}ding, Johannes and Steinegger, Martin},</span>
+<span class="s2">  year         = 2017,</span>
+<span class="s2">  journal      = {Nucleic Acids Res.},</span>
+<span class="s2">  volume       = 45,</span>
+<span class="s2">  number       = </span><span class="si">{D1}</span><span class="s2">,</span>
+<span class="s2">  pages        = {D170--D176},</span>
+<span class="s2">  doi          = {10.1093/nar/gkw1081},</span>
+<span class="s2">  pmid         = 27899574,</span>
+<span class="s2">  comment      = {Uniclust30/UniRef30 database}</span>
+<span class="s2">}</span>
+<span class="s2">@article{Mitchell2019,</span>
+<span class="s2">  title        = {{MGnify: the microbiome analysis resource in 2020}},</span>
+<span class="s2">  author       = {Mitchell, Alex L and Almeida, Alexandre and Beracochea, Martin and Boland, Miguel and Burgin, Josephine and Cochrane, Guy and Crusoe, Michael R and Kale, Varsha and Potter, Simon C and Richardson, Lorna J and Sakharova, Ekaterina and Scheremetjew, Maxim and Korobeynikov, Anton and Shlemov, Alex and Kunyavskaya, Olga and Lapidus, Alla and Finn, Robert D},</span>
+<span class="s2">  year         = 2019,</span>
+<span class="s2">  journal      = {Nucleic Acids Res.},</span>
+<span class="s2">  doi          = {10.1093/nar/gkz1035},</span>
+<span class="s2">  comment      = {MGnify database}</span>
+<span class="s2">}</span>
+<span class="s2">@article{Mirdita2022,</span>
+<span class="s2">  title        = {{ColabFold: making protein folding accessible to all}},</span>
+<span class="s2">  author       = {Mirdita, Milot and Sch{</span><span class="se">\&quot;</span><span class="s2">u}tze, Konstantin and Moriwaki, Yoshitaka and Heo, Lim and Ovchinnikov, Sergey and Steinegger, Martin},</span>
+<span class="s2">  year         = 2022,</span>
+<span class="s2">  journal      = {Nature Methods},</span>
+<span class="s2">  doi          = {10.1038/s41592-022-01488-1},</span>
+<span class="s2">  comment      = {ColabFold API}</span>
+<span class="s2">}</span>
+<span class="s2">&quot;&quot;&quot;</span>
+
+
+<span class="c1">### FUNCTIONS ###</span>
+<div class="viewcode-block" id="read_msa">
+<a class="viewcode-back" href="../../neurosnap.html#neurosnap.msa.read_msa">[docs]</a>
+<span class="k">def</span> <span class="nf">read_msa</span><span class="p">(</span>
+  <span class="n">input_fasta</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">io</span><span class="o">.</span><span class="n">TextIOBase</span><span class="p">],</span>
+  <span class="n">size</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;inf&quot;</span><span class="p">),</span>
+  <span class="n">allow_chars</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+  <span class="n">drop_chars</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+  <span class="n">remove_chars</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;*&quot;</span><span class="p">,</span>
+  <span class="n">uppercase</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;Reads an MSA, a3m, or fasta file and returns an array of names and seqs.</span>
+
+<span class="sd">  Parameters:</span>
+<span class="sd">    input_fasta: Path to read input a3m file, fasta as a raw string, or a file-handle like object to read</span>
+<span class="sd">    size: Number of rows to read</span>
+<span class="sd">    allow_chars: Sequences that contain characters not included within STANDARD_AAs+allow_chars will throw an exception</span>
+<span class="sd">    drop_chars: Drop sequences that contain these characters. For example, ``&quot;-X&quot;``</span>
+<span class="sd">    remove_chars: Removes these characters from sequences. For example, ``&quot;*-X&quot;``</span>
+<span class="sd">    uppercase: Converts all amino acid chars to uppercase when True</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A tuple of the form ``(names, seqs)``</span>
+
+<span class="sd">    - ``names``: list of protein names from the a3m file, including gaps</span>
+<span class="sd">    - ``seqs``: list of protein sequences from the a3m file, including gaps</span>
+
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">names</span> <span class="o">=</span> <span class="p">[]</span>
+  <span class="n">seqs</span> <span class="o">=</span> <span class="p">[]</span>
+  <span class="n">allow_chars</span> <span class="o">=</span> <span class="n">allow_chars</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">-&quot;</span><span class="p">)</span>
+  <span class="n">drop_chars</span> <span class="o">=</span> <span class="n">drop_chars</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">-&quot;</span><span class="p">)</span>
+  <span class="n">remove_chars</span> <span class="o">=</span> <span class="n">remove_chars</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">-&quot;</span><span class="p">)</span>
+
+  <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_fasta</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">input_fasta</span><span class="p">):</span>
+      <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">input_fasta</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">f</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">StringIO</span><span class="p">(</span><span class="n">input_fasta</span><span class="p">)</span>
+  <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_fasta</span><span class="p">,</span> <span class="n">io</span><span class="o">.</span><span class="n">TextIOBase</span><span class="p">):</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="n">input_fasta</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid input for input_fasta, </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">input_fasta</span><span class="p">)</span><span class="si">}</span><span class="s2"> is not a valid type.&quot;</span><span class="p">)</span>
+
+  <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">line</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;&gt;&quot;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">seqs</span> <span class="ow">and</span> <span class="n">seqs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+          <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid MSA/fasta. Header </span><span class="si">{</span><span class="n">names</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2"> is missing a sequence.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">seqs</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">size</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:</span>
+          <span class="k">break</span>
+        <span class="n">match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;^&gt;([\w-]*)&quot;</span><span class="p">,</span> <span class="n">line</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">match</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Invalid MSA/fasta. </span><span class="si">{</span><span class="n">line</span><span class="si">}</span><span class="s2"> is not a valid header.&quot;</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">name</span><span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Invalid MSA/fasta. line </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> has an empty header.&quot;</span>
+        <span class="n">names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">seqs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">uppercase</span><span class="p">:</span>
+          <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+        <span class="c1"># remove whitespace and remove_chars</span>
+        <span class="k">if</span> <span class="n">remove_chars</span><span class="p">:</span>
+          <span class="n">line</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[</span><span class="si">{</span><span class="n">remove_chars</span><span class="si">}</span><span class="se">\\</span><span class="s2">s]&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">line</span><span class="p">)</span>
+        <span class="c1"># drop chars</span>
+        <span class="k">if</span> <span class="n">drop_chars</span><span class="p">:</span>
+          <span class="n">match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[</span><span class="si">{</span><span class="n">drop_chars</span><span class="si">}</span><span class="s2">]&quot;</span><span class="p">,</span> <span class="n">line</span><span class="p">)</span>
+          <span class="k">if</span> <span class="n">match</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">names</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+            <span class="n">seqs</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+            <span class="k">continue</span>
+
+        <span class="n">match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;^[</span><span class="si">{</span><span class="n">STANDARD_AAs</span><span class="o">+</span><span class="n">allow_chars</span><span class="si">}</span><span class="s2">]*$&quot;</span><span class="p">,</span> <span class="n">line</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">match</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+          <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Sequence on line </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> contains an invalid character. Please specify whether you would like drop or replace characters in sequences like these. Sequence=&#39;</span><span class="si">{</span><span class="n">line</span><span class="si">}</span><span class="s2">&#39;&quot;</span>
+          <span class="p">)</span>
+        <span class="n">seqs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="n">line</span>
+
+  <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+  <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">names</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">seqs</span><span class="p">),</span> <span class="s2">&quot;Invalid MSA/fasta. The number sequences and headers found do not match.&quot;</span>
+  <span class="k">return</span> <span class="n">names</span><span class="p">,</span> <span class="n">seqs</span></div>
+
+
+
+<div class="viewcode-block" id="write_msa">
+<a class="viewcode-back" href="../../neurosnap.html#neurosnap.msa.write_msa">[docs]</a>
+<span class="k">def</span> <span class="nf">write_msa</span><span class="p">(</span><span class="n">output_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">names</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">seqs</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]):</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;Writes an MSA, a3m, or fasta to a file.</span>
+<span class="sd">  Makes no assumptions about the validity of names or</span>
+<span class="sd">  sequences. Will throw an exception if ``len(names) != len(seqs)``</span>
+
+<span class="sd">  Parameters:</span>
+<span class="sd">    output_path: Path to output file to write, will overwrite existing files</span>
+<span class="sd">    names: List of proteins names from the file</span>
+<span class="sd">    seqs: List of proteins sequences from the file</span>
+
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">names</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">seqs</span><span class="p">),</span> <span class="s2">&quot;The number of names and sequences do not match.&quot;</span>
+  <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">output_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">seq</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">names</span><span class="p">,</span> <span class="n">seqs</span><span class="p">):</span>
+      <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&gt;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="se">\n</span><span class="si">{</span><span class="n">seq</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="pad_seqs">
+<a class="viewcode-back" href="../../neurosnap.html#neurosnap.msa.pad_seqs">[docs]</a>
+<span class="k">def</span> <span class="nf">pad_seqs</span><span class="p">(</span><span class="n">seqs</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">char</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;-&quot;</span><span class="p">,</span> <span class="n">truncate</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;Pads all sequences to the longest sequences length using a character from the right side.</span>
+
+<span class="sd">  Parameters:</span>
+<span class="sd">    seqs: List of sequences to pad</span>
+<span class="sd">    chars: The character to perform the padding with, default is &quot;-&quot;</span>
+<span class="sd">    truncate: When set to True will truncate all sequences to the length of the first, set to integer to truncate sequence to that length</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    The padded sequences</span>
+
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="n">truncate</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+    <span class="n">longest_seq</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">seqs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+  <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">truncate</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span><span class="p">:</span>
+    <span class="k">assert</span> <span class="n">truncate</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;truncate must be either a boolean value or an integer greater than or equal to 1.&quot;</span>
+    <span class="n">longest_seq</span> <span class="o">=</span> <span class="n">truncate</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">longest_seq</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">seqs</span><span class="p">)</span>
+
+  <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">seq</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">seqs</span><span class="p">):</span>
+    <span class="n">seqs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">seq</span><span class="o">.</span><span class="n">ljust</span><span class="p">(</span><span class="n">longest_seq</span><span class="p">,</span> <span class="s2">&quot;-&quot;</span><span class="p">)</span>
+    <span class="n">seqs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">seqs</span><span class="p">[</span><span class="n">i</span><span class="p">][:</span><span class="n">longest_seq</span><span class="p">]</span>
+  <span class="k">return</span> <span class="n">seqs</span></div>
+
+
+
+<div class="viewcode-block" id="get_seqid">
+<a class="viewcode-back" href="../../neurosnap.html#neurosnap.msa.get_seqid">[docs]</a>
+<span class="k">def</span> <span class="nf">get_seqid</span><span class="p">(</span><span class="n">seq1</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">seq2</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;Calculate the pairwise sequence identity of two same length sequences or alignments.</span>
+<span class="sd">  Will not perform any alignment steps.</span>
+
+<span class="sd">  Parameters:</span>
+<span class="sd">    seq1: The 1st sequence / aligned sequence.</span>
+<span class="sd">    seq2: The 2nd sequence / aligned sequence.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    The pairwise sequence identity, 0 means no matches found, 100 means sequences were identical.</span>
+
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">seq1</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">seq2</span><span class="p">),</span> <span class="s2">&quot;Sequences are not the same length.&quot;</span>
+  <span class="n">num_matches</span> <span class="o">=</span> <span class="mi">0</span>
+  <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">seq1</span><span class="p">,</span> <span class="n">seq2</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">a</span> <span class="o">==</span> <span class="n">b</span><span class="p">:</span>
+      <span class="n">num_matches</span> <span class="o">+=</span> <span class="mi">1</span>
+  <span class="k">return</span> <span class="mi">100</span> <span class="o">*</span> <span class="n">num_matches</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">seq1</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="run_phmmer">
+<a class="viewcode-back" href="../../neurosnap.html#neurosnap.msa.run_phmmer">[docs]</a>
+<span class="k">def</span> <span class="nf">run_phmmer</span><span class="p">(</span><span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">database</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">evalue</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">10.0</span><span class="p">,</span> <span class="n">cpu</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;Run phmmer using a query sequence against a database and</span>
+<span class="sd">  return all the sequences that are considered as hits.</span>
+<span class="sd">  Shamelessly stolen and adapted from https://github.com/seanrjohnson/protein_gibbs_sampler/blob/a5de349d5f6a474407fc0f19cecf39a0447a20a6/src/pgen/utils.py#L263</span>
+
+<span class="sd">  Parameters:</span>
+<span class="sd">    query: Amino acid sequence of the protein you want to find hits for</span>
+<span class="sd">    database: Path to reference database of sequences you want to search for hits and create and alignment with, must be a protein fasta file</span>
+<span class="sd">    evalue: The threshold E value for the phmmer hit to be reported</span>
+<span class="sd">    cpu: The number of CPU cores to be used to run phmmer</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    List of hits ranked by how good the hits are</span>
+
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">assert</span> <span class="n">shutil</span><span class="o">.</span><span class="n">which</span><span class="p">(</span><span class="s2">&quot;phmmer&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;Cannot find phmmer. Please ensure phmmer is installed and added to your PATH.&quot;</span>
+
+  <span class="c1"># Create a fasta file containing the query protein sequence. The fasta file name is based on input genbank file name</span>
+  <span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">TemporaryDirectory</span><span class="p">()</span> <span class="k">as</span> <span class="n">tmp</span><span class="p">:</span>
+    <span class="n">queryfa_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tmp</span><span class="p">,</span> <span class="s2">&quot;query.fa&quot;</span><span class="p">)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">queryfa_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">tmpfasta</span><span class="p">:</span>
+      <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&gt;QUERY</span><span class="se">\n</span><span class="si">{</span><span class="n">query</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">tmpfasta</span><span class="p">)</span>
+
+    <span class="n">search_args</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;phmmer&quot;</span><span class="p">,</span> <span class="s2">&quot;--noali&quot;</span><span class="p">,</span> <span class="s2">&quot;--notextw&quot;</span><span class="p">,</span> <span class="s2">&quot;--cpu&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">cpu</span><span class="p">),</span> <span class="s2">&quot;-E&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">evalue</span><span class="p">),</span> <span class="n">queryfa_path</span><span class="p">,</span> <span class="n">database</span><span class="p">]</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">search_args</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">out</span><span class="o">.</span><span class="n">returncode</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error in hmmer execution: </span><span class="se">\n</span><span class="si">{</span><span class="n">out</span><span class="o">.</span><span class="n">stdout</span><span class="si">}</span><span class="se">\n</span><span class="si">{</span><span class="n">out</span><span class="o">.</span><span class="n">stderr</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="n">hits</span> <span class="o">=</span> <span class="n">SearchIO</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">io</span><span class="o">.</span><span class="n">StringIO</span><span class="p">(</span><span class="n">out</span><span class="o">.</span><span class="n">stdout</span><span class="p">),</span> <span class="s2">&quot;hmmer3-text&quot;</span><span class="p">)</span>
+    <span class="n">hit_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">id</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">hits</span><span class="p">]</span>
+
+  <span class="k">return</span> <span class="n">hit_names</span></div>
+
+
+
+<div class="viewcode-block" id="align_mafft">
+<a class="viewcode-back" href="../../neurosnap.html#neurosnap.msa.align_mafft">[docs]</a>
+<span class="k">def</span> <span class="nf">align_mafft</span><span class="p">(</span><span class="n">seqs</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span> <span class="n">ep</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">op</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.53</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;Generates an alignment using mafft.</span>
+
+<span class="sd">  Parameters:</span>
+<span class="sd">    seqs: Can be:</span>
+
+<span class="sd">      - fasta file path,</span>
+<span class="sd">      - list of sequences, or</span>
+<span class="sd">      - dictionary where values are AA sequences and keys are their corresponding names/IDs</span>
+<span class="sd">    ep: ep value for mafft, default is 0.00</span>
+<span class="sd">    op: op value for mafft, default is 1.53</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A tuple of the form ``(out_names, out_seqs)``</span>
+
+<span class="sd">    - ``out_names``: list of aligned protein names</span>
+<span class="sd">    - ``out_seqs``: list of corresponding protein sequences</span>
+
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="c1"># check if mafft is actually present</span>
+  <span class="k">assert</span> <span class="p">(</span>
+    <span class="n">shutil</span><span class="o">.</span><span class="n">which</span><span class="p">(</span><span class="s2">&quot;mafft&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+  <span class="p">),</span> <span class="s2">&quot;Cannot create alignment without mafft being installed. Please install mafft either using a package manager or from https://mafft.cbrc.jp/alignment/software/&quot;</span>
+  <span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">TemporaryDirectory</span><span class="p">()</span> <span class="k">as</span> <span class="n">tmp_dir</span><span class="p">:</span>
+    <span class="n">tmp_fasta_path</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">tmp_dir</span><span class="si">}</span><span class="s2">/tmp.fasta&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">seqs</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+      <span class="n">tmp_fasta_path</span> <span class="o">=</span> <span class="n">seqs</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">seqs</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+      <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">tmp_fasta_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">seq</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">seqs</span><span class="p">):</span>
+          <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&gt;seq_</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="se">\n</span><span class="si">{</span><span class="n">seq</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">seqs</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+      <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">tmp_fasta_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">seq</span> <span class="ow">in</span> <span class="n">seqs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+          <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&gt;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="se">\n</span><span class="si">{</span><span class="n">seq</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;Input seqs cannot be of type </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">seqs</span><span class="p">)</span><span class="si">}</span><span class="s2">. Can be fasta file path, list of sequences, or dictionary where values are AA sequences and keys are their corresponding names/IDs.&quot;</span>
+      <span class="p">)</span>
+
+    <span class="c1"># logger.info(f&quot;[*] Generating alignment with {len(seqs)} using mafft.&quot;)</span>
+    <span class="n">align_out</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
+      <span class="p">[</span><span class="s2">&quot;mafft&quot;</span><span class="p">,</span> <span class="s2">&quot;--thread&quot;</span><span class="p">,</span> <span class="s2">&quot;8&quot;</span><span class="p">,</span> <span class="s2">&quot;--maxiterate&quot;</span><span class="p">,</span> <span class="s2">&quot;1000&quot;</span><span class="p">,</span> <span class="s2">&quot;--globalpair&quot;</span><span class="p">,</span> <span class="s2">&quot;--ep&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">ep</span><span class="p">),</span> <span class="s2">&quot;--op&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">op</span><span class="p">),</span> <span class="n">tmp_fasta_path</span><span class="p">],</span>
+      <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span>
+      <span class="n">stderr</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+      <span class="n">align_out</span><span class="o">.</span><span class="n">check_returncode</span><span class="p">()</span>
+    <span class="k">except</span><span class="p">:</span>  <span class="c1"># noqa: E722</span>
+      <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">align_out</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
+      <span class="k">raise</span> <span class="ne">Exception</span><span class="p">()</span>
+
+  <span class="k">return</span> <span class="n">read_msa</span><span class="p">(</span><span class="n">io</span><span class="o">.</span><span class="n">StringIO</span><span class="p">(</span><span class="n">align_out</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)),</span> <span class="n">allow_chars</span><span class="o">=</span><span class="s2">&quot;-&quot;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="run_phmmer_mafft">
+<a class="viewcode-back" href="../../neurosnap.html#neurosnap.msa.run_phmmer_mafft">[docs]</a>
+<span class="k">def</span> <span class="nf">run_phmmer_mafft</span><span class="p">(</span><span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">ref_db_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;inf&quot;</span><span class="p">),</span> <span class="n">in_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;input_sequence&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;Generate MSA using phmmer and mafft from reference sequences.</span>
+
+<span class="sd">  Parameters:</span>
+<span class="sd">    query: Amino acid sequence of the protein whose MSA you want to create</span>
+<span class="sd">    ref_db_path: Path to reference database of sequences with which you want to search for hits and create and alignment</span>
+<span class="sd">    size: Top n number of sequences to keep</span>
+<span class="sd">    in_name: Optional name for input sequence to put in the output</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A tuple of the form ``(out_names, out_seqs)``</span>
+
+<span class="sd">    - ``out_names``: list of aligned protein names</span>
+<span class="sd">    - ``out_seqs``: list of corresponding protein sequences</span>
+
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">TemporaryDirectory</span><span class="p">()</span> <span class="k">as</span> <span class="n">tmp_dir</span><span class="p">:</span>
+    <span class="n">tmp_fasta_path</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">tmp_dir</span><span class="si">}</span><span class="s2">/tmp.fasta&quot;</span>
+    <span class="c1"># clean input fasta</span>
+    <span class="n">names</span><span class="p">,</span> <span class="n">seqs</span> <span class="o">=</span> <span class="n">read_msa</span><span class="p">(</span><span class="n">ref_db_path</span><span class="p">,</span> <span class="n">remove_chars</span><span class="o">=</span><span class="s2">&quot;*-&quot;</span><span class="p">,</span> <span class="n">drop_chars</span><span class="o">=</span><span class="s2">&quot;X&quot;</span><span class="p">)</span>
+    <span class="c1"># ensure no duplicate IDs</span>
+    <span class="n">reference_seqs</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">seq</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">names</span><span class="p">,</span> <span class="n">seqs</span><span class="p">)):</span>
+      <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">seq</span><span class="p">:</span>
+        <span class="n">reference_seqs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">seq</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">reference_seqs</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">seq</span>
+    <span class="c1"># write cleaned fasta</span>
+    <span class="n">write_msa</span><span class="p">(</span><span class="n">tmp_fasta_path</span><span class="p">,</span> <span class="n">reference_seqs</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="n">reference_seqs</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+
+    <span class="c1"># find hits</span>
+    <span class="n">hits</span> <span class="o">=</span> <span class="n">run_phmmer</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">tmp_fasta_path</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Found </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">hits</span><span class="p">)</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">names</span><span class="p">)</span><span class="si">}</span><span class="s2"> in reference DB for query.&quot;</span><span class="p">)</span>
+    <span class="n">unaligned_seqs</span> <span class="o">=</span> <span class="p">{</span><span class="n">in_name</span><span class="p">:</span> <span class="n">query</span><span class="p">}</span>  <span class="c1"># keep target sequence at the top</span>
+    <span class="n">found_names</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">in_name</span><span class="p">)</span>
+    <span class="n">found_seqs</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">hits</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)):</span>
+      <span class="n">hit_name</span> <span class="o">=</span> <span class="n">hits</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+      <span class="n">hit_seq</span> <span class="o">=</span> <span class="n">reference_seqs</span><span class="p">[</span><span class="n">hit_name</span><span class="p">]</span>
+      <span class="k">if</span> <span class="n">hit_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">found_names</span> <span class="ow">and</span> <span class="n">hit_seq</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">found_seqs</span><span class="p">:</span>
+        <span class="n">found_names</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">hit_name</span><span class="p">)</span>
+        <span class="n">found_seqs</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">hit_seq</span><span class="p">)</span>
+        <span class="n">unaligned_seqs</span><span class="p">[</span><span class="n">hit_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">hit_seq</span>
+
+  <span class="c1"># generate alignment and return</span>
+  <span class="k">return</span> <span class="n">align_mafft</span><span class="p">(</span><span class="n">unaligned_seqs</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="run_mmseqs2">
+<a class="viewcode-back" href="../../neurosnap.html#neurosnap.msa.run_mmseqs2">[docs]</a>
+<span class="k">def</span> <span class="nf">run_mmseqs2</span><span class="p">(</span>
+  <span class="n">seqs</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+  <span class="n">output</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+  <span class="n">database</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;mmseqs2_uniref_env&quot;</span><span class="p">,</span>
+  <span class="n">use_filter</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+  <span class="n">use_templates</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+  <span class="n">pairing</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+  <span class="n">print_citations</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]]:</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;Generate an a3m MSA using the ColabFold API.</span>
+<span class="sd">  Will write all results to the output directory including templates,</span>
+<span class="sd">  MSAs, and accompanying files.</span>
+
+<span class="sd">  Code originally adapted from: https://github.com/sokrypton/ColabFold/</span>
+
+<span class="sd">  Parameters:</span>
+<span class="sd">    seqs: Amino acid sequences for protein to generate an MSA of</span>
+<span class="sd">    output: Output directory path, will overwrite existing results</span>
+<span class="sd">    database: Choose the database to use, must be either &quot;mmseqs2_uniref_env&quot; or &quot;mmseqs2_uniref&quot;</span>
+<span class="sd">    use_filter: Enables the diversity and msa filtering steps that ensures the MSA will not become enormously large (described in manuscript methods section of ColabFold paper)</span>
+<span class="sd">    use_templates: Download templates as well using the mmseqs2 results</span>
+<span class="sd">    pairing: Can be set to either &quot;greedy&quot;, &quot;complete&quot;, or None for no pairing</span>
+<span class="sd">    print_citations: Prints citations</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    - ``a3m_lines``: list of a3m lines</span>
+<span class="sd">    - ``template_paths``: list of template paths</span>
+
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="n">print_citations</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">MMSEQS2_CITATION</span><span class="p">)</span>
+  <span class="c1"># API settings</span>
+  <span class="n">host_url</span> <span class="o">=</span> <span class="s2">&quot;https://api.colabfold.com&quot;</span>
+  <span class="n">submission_endpoint</span> <span class="o">=</span> <span class="s2">&quot;ticket/pair&quot;</span> <span class="k">if</span> <span class="n">pairing</span> <span class="k">else</span> <span class="s2">&quot;ticket/msa&quot;</span>
+  <span class="n">headers</span> <span class="o">=</span> <span class="p">{}</span>
+  <span class="n">headers</span><span class="p">[</span><span class="s2">&quot;User-Agent&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">USER_AGENT</span>
+  <span class="n">timeout</span> <span class="o">=</span> <span class="mf">6.02</span>
+
+  <span class="c1"># set the mode</span>
+  <span class="k">assert</span> <span class="n">database</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;mmseqs2_uniref_env&quot;</span><span class="p">,</span> <span class="s2">&quot;mmseqs2_uniref&quot;</span><span class="p">],</span> <span class="s1">&#39;database must be either &quot;mmseqs2_uniref_env&quot; or &quot;mmseqs2_uniref&quot;&#39;</span>
+  <span class="k">if</span> <span class="n">use_filter</span><span class="p">:</span>
+    <span class="n">mode</span> <span class="o">=</span> <span class="s2">&quot;env&quot;</span> <span class="k">if</span> <span class="n">database</span> <span class="o">==</span> <span class="s2">&quot;mmseqs2_uniref_env&quot;</span> <span class="k">else</span> <span class="s2">&quot;all&quot;</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">mode</span> <span class="o">=</span> <span class="s2">&quot;env-nofilter&quot;</span> <span class="k">if</span> <span class="n">database</span> <span class="o">==</span> <span class="s2">&quot;mmseqs2_uniref_env&quot;</span> <span class="k">else</span> <span class="s2">&quot;nofilter&quot;</span>
+
+  <span class="k">if</span> <span class="n">pairing</span><span class="p">:</span>
+    <span class="n">use_templates</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="c1"># greedy is default, complete was the previous behavior</span>
+    <span class="k">assert</span> <span class="n">pairing</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;greedy&quot;</span><span class="p">,</span> <span class="s2">&quot;complete&quot;</span><span class="p">],</span> <span class="s1">&#39;pairing must be either &quot;greedy&quot;, &quot;complete&quot;, or None&#39;</span>
+    <span class="k">if</span> <span class="n">pairing</span> <span class="o">==</span> <span class="s2">&quot;greedy&quot;</span><span class="p">:</span>
+      <span class="n">mode</span> <span class="o">=</span> <span class="s2">&quot;pairgreedy&quot;</span>
+    <span class="k">elif</span> <span class="n">pairing</span> <span class="o">==</span> <span class="s2">&quot;complete&quot;</span><span class="p">:</span>
+      <span class="n">mode</span> <span class="o">=</span> <span class="s2">&quot;paircomplete&quot;</span>
+
+  <span class="c1"># define path</span>
+  <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">output</span><span class="p">):</span>
+    <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
+  <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
+
+  <span class="k">def</span> <span class="nf">submit</span><span class="p">(</span><span class="n">seqs</span><span class="p">,</span> <span class="n">mode</span><span class="p">,</span> <span class="n">N</span><span class="o">=</span><span class="mi">101</span><span class="p">):</span>
+    <span class="n">n</span><span class="p">,</span> <span class="n">query</span> <span class="o">=</span> <span class="n">N</span><span class="p">,</span> <span class="s2">&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">seq</span> <span class="ow">in</span> <span class="n">seqs</span><span class="p">:</span>
+      <span class="n">query</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;&gt;</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="se">\n</span><span class="si">{</span><span class="n">seq</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+      <span class="n">n</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+      <span class="n">error_count</span> <span class="o">=</span> <span class="mi">0</span>
+      <span class="k">try</span><span class="p">:</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">host_url</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">submission_endpoint</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;q&quot;</span><span class="p">:</span> <span class="n">query</span><span class="p">,</span> <span class="s2">&quot;mode&quot;</span><span class="p">:</span> <span class="n">mode</span><span class="p">},</span> <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">)</span>
+      <span class="k">except</span> <span class="n">requests</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">Timeout</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Timeout while submitting to MSA server. Retrying...&quot;</span><span class="p">)</span>
+        <span class="k">continue</span>
+      <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">error_count</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error while fetching result from MSA server. Retrying... (</span><span class="si">{</span><span class="n">error_count</span><span class="si">}</span><span class="s2">/5)&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">timeout</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">error_count</span> <span class="o">&gt;</span> <span class="mi">5</span><span class="p">:</span>
+          <span class="k">raise</span>
+        <span class="k">continue</span>
+      <span class="k">break</span>
+
+    <span class="k">try</span><span class="p">:</span>
+      <span class="n">out</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+      <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Server didn&#39;t reply with json: </span><span class="si">{</span><span class="n">r</span><span class="o">.</span><span class="n">text</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+      <span class="n">out</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;status&quot;</span><span class="p">:</span> <span class="s2">&quot;ERROR&quot;</span><span class="p">}</span>
+    <span class="k">return</span> <span class="n">out</span>
+
+  <span class="k">def</span> <span class="nf">status</span><span class="p">(</span><span class="n">ID</span><span class="p">):</span>
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+      <span class="n">error_count</span> <span class="o">=</span> <span class="mi">0</span>
+      <span class="k">try</span><span class="p">:</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">host_url</span><span class="si">}</span><span class="s2">/ticket/</span><span class="si">{</span><span class="n">ID</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">)</span>
+      <span class="k">except</span> <span class="n">requests</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">Timeout</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Timeout while fetching status from MSA server. Retrying...&quot;</span><span class="p">)</span>
+        <span class="k">continue</span>
+      <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">error_count</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error while fetching result from MSA server. Retrying... (</span><span class="si">{</span><span class="n">error_count</span><span class="si">}</span><span class="s2">/5)&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">timeout</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">error_count</span> <span class="o">&gt;</span> <span class="mi">5</span><span class="p">:</span>
+          <span class="k">raise</span>
+        <span class="k">continue</span>
+      <span class="k">break</span>
+    <span class="k">try</span><span class="p">:</span>
+      <span class="n">out</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+      <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Server didn&#39;t reply with json: </span><span class="si">{</span><span class="n">r</span><span class="o">.</span><span class="n">text</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+      <span class="n">out</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;status&quot;</span><span class="p">:</span> <span class="s2">&quot;ERROR&quot;</span><span class="p">}</span>
+    <span class="k">return</span> <span class="n">out</span>
+
+  <span class="c1">## call mmseqs2 api</span>
+  <span class="c1"># Resubmit job until it goes through</span>
+  <span class="n">seqs</span> <span class="o">=</span> <span class="p">[</span><span class="n">seqs</span><span class="p">]</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">seqs</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">else</span> <span class="n">seqs</span>
+  <span class="n">seqs_unique</span> <span class="o">=</span> <span class="p">[]</span>
+  <span class="p">[</span><span class="n">seqs_unique</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">seqs</span> <span class="k">if</span> <span class="n">x</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">seqs_unique</span><span class="p">]</span>
+  <span class="n">Ms</span> <span class="o">=</span> <span class="p">[</span><span class="mi">101</span> <span class="o">+</span> <span class="n">seqs_unique</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">seq</span><span class="p">)</span> <span class="k">for</span> <span class="n">seq</span> <span class="ow">in</span> <span class="n">seqs</span><span class="p">]</span>
+
+  <span class="n">out</span> <span class="o">=</span> <span class="n">submit</span><span class="p">(</span><span class="n">seqs_unique</span><span class="p">,</span> <span class="n">mode</span><span class="p">)</span>
+  <span class="k">while</span> <span class="n">out</span><span class="p">[</span><span class="s2">&quot;status&quot;</span><span class="p">]</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;UNKNOWN&quot;</span><span class="p">,</span> <span class="s2">&quot;RATELIMIT&quot;</span><span class="p">]:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Sleeping for </span><span class="si">{</span><span class="n">timeout</span><span class="si">}</span><span class="s2">s. Reason: </span><span class="si">{</span><span class="n">out</span><span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="c1"># resubmit</span>
+    <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">timeout</span><span class="p">)</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">submit</span><span class="p">(</span><span class="n">seqs_unique</span><span class="p">,</span> <span class="n">mode</span><span class="p">)</span>
+
+  <span class="k">if</span> <span class="n">out</span><span class="p">[</span><span class="s2">&quot;status&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;ERROR&quot;</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+      <span class="s2">&quot;MMseqs2 API is giving errors. Please confirm your input is a valid protein sequence. If error persists, please try again an hour later.&quot;</span>
+    <span class="p">)</span>
+
+  <span class="k">if</span> <span class="n">out</span><span class="p">[</span><span class="s2">&quot;status&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;MAINTENANCE&quot;</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;MMseqs2 API is undergoing maintenance. Please try again in a few minutes.&quot;</span><span class="p">)</span>
+
+  <span class="c1"># wait for job to finish</span>
+  <span class="n">ID</span> <span class="o">=</span> <span class="n">out</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span>
+  <span class="k">while</span> <span class="n">out</span><span class="p">[</span><span class="s2">&quot;status&quot;</span><span class="p">]</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;UNKNOWN&quot;</span><span class="p">,</span> <span class="s2">&quot;RUNNING&quot;</span><span class="p">,</span> <span class="s2">&quot;PENDING&quot;</span><span class="p">]:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Sleeping for </span><span class="si">{</span><span class="n">timeout</span><span class="si">}</span><span class="s2">s. Reason: </span><span class="si">{</span><span class="n">out</span><span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">timeout</span><span class="p">)</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">status</span><span class="p">(</span><span class="n">ID</span><span class="p">)</span>
+
+  <span class="k">if</span> <span class="n">out</span><span class="p">[</span><span class="s2">&quot;status&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;ERROR&quot;</span> <span class="ow">or</span> <span class="n">out</span><span class="p">[</span><span class="s2">&quot;status&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;COMPLETE&quot;</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+      <span class="s2">&quot;MMseqs2 API is giving errors. Please confirm your input is a valid protein sequence. If error persists, please try again an hour later.&quot;</span>
+    <span class="p">)</span>
+
+  <span class="c1"># Download results</span>
+  <span class="n">error_count</span> <span class="o">=</span> <span class="mi">0</span>
+  <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+    <span class="k">try</span><span class="p">:</span>
+      <span class="n">r</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">host_url</span><span class="si">}</span><span class="s2">/result/download/</span><span class="si">{</span><span class="n">ID</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">requests</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">Timeout</span><span class="p">:</span>
+      <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Timeout while fetching result from MSA server. Retrying...&quot;</span><span class="p">)</span>
+      <span class="k">continue</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+      <span class="n">error_count</span> <span class="o">+=</span> <span class="mi">1</span>
+      <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error while fetching result from MSA server. Retrying... (</span><span class="si">{</span><span class="n">error_count</span><span class="si">}</span><span class="s2">/5)&quot;</span><span class="p">)</span>
+      <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+      <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">timeout</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">error_count</span> <span class="o">&gt;</span> <span class="mi">5</span><span class="p">:</span>
+        <span class="k">raise</span>
+      <span class="k">continue</span>
+    <span class="k">break</span>
+  <span class="c1"># extract files</span>
+  <span class="k">with</span> <span class="n">tarfile</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">fileobj</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">raw</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;r|gz&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">tar</span><span class="p">:</span>
+    <span class="n">tar</span><span class="o">.</span><span class="n">extractall</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">output</span><span class="p">,</span> <span class="nb">filter</span><span class="o">=</span><span class="s2">&quot;data&quot;</span><span class="p">)</span>
+
+  <span class="k">if</span> <span class="n">pairing</span><span class="p">:</span>
+    <span class="n">a3m_files</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">output</span><span class="si">}</span><span class="s2">/pair.a3m&quot;</span><span class="p">]</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">a3m_files</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">output</span><span class="si">}</span><span class="s2">/uniref.a3m&quot;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;env&quot;</span><span class="p">:</span>
+      <span class="n">a3m_files</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">output</span><span class="si">}</span><span class="s2">/bfd.mgnify30.metaeuk30.smag30.a3m&quot;</span><span class="p">)</span>
+
+  <span class="c1"># gather a3m lines</span>
+  <span class="n">a3m_lines</span> <span class="o">=</span> <span class="p">{}</span>
+  <span class="k">for</span> <span class="n">a3m_file</span> <span class="ow">in</span> <span class="n">a3m_files</span><span class="p">:</span>
+    <span class="n">update_M</span><span class="p">,</span> <span class="n">M</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">None</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">open</span><span class="p">(</span><span class="n">a3m_file</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">):</span>
+      <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">line</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s2">&quot;</span><span class="se">\x00</span><span class="s2">&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+          <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\x00</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+          <span class="n">update_M</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;&gt;&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">update_M</span><span class="p">:</span>
+          <span class="n">M</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span><span class="o">.</span><span class="n">rstrip</span><span class="p">())</span>
+          <span class="n">update_M</span> <span class="o">=</span> <span class="kc">False</span>
+          <span class="k">if</span> <span class="n">M</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">a3m_lines</span><span class="p">:</span>
+            <span class="n">a3m_lines</span><span class="p">[</span><span class="n">M</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">a3m_lines</span><span class="p">[</span><span class="n">M</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+
+  <span class="n">a3m_lines</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">a3m_lines</span><span class="p">[</span><span class="n">n</span><span class="p">])</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">Ms</span><span class="p">]</span>
+
+  <span class="c1"># remove null bytes from all files including pair files</span>
+  <span class="k">for</span> <span class="n">fname</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">output</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">fname</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;uniref.a3m&quot;</span><span class="p">,</span> <span class="s2">&quot;bfd.mgnify30.metaeuk30.smag30.a3m&quot;</span><span class="p">,</span> <span class="s2">&quot;pair.a3m&quot;</span><span class="p">]:</span>
+      <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">output</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">fname</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fin</span><span class="p">:</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">output</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">fname</span><span class="si">}</span><span class="s2">.tmp&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fout</span><span class="p">:</span>
+          <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">fin</span><span class="p">:</span>
+            <span class="n">fout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\x00</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">))</span>
+      <span class="n">shutil</span><span class="o">.</span><span class="n">move</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">output</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">fname</span><span class="si">}</span><span class="s2">.tmp&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">output</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">fname</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+  <span class="k">if</span> <span class="n">pairing</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="c1"># Concatenate to create combined file</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">output</span><span class="si">}</span><span class="s2">/combined.a3m&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fout</span><span class="p">:</span>
+      <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">output</span><span class="si">}</span><span class="s2">/uniref.a3m&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
+          <span class="n">fout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+
+      <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">output</span><span class="si">}</span><span class="s2">/bfd.mgnify30.metaeuk30.smag30.a3m&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="c1"># skip first two lines</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
+          <span class="n">fout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+
+  <span class="c1"># templates</span>
+  <span class="k">if</span> <span class="n">use_templates</span><span class="p">:</span>
+    <span class="n">templates</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="c1"># print(&quot;seq\tpdb\tcid\tevalue&quot;)</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">open</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">output</span><span class="si">}</span><span class="s2">/pdb70.m8&quot;</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">):</span>
+      <span class="n">p</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+      <span class="n">M</span><span class="p">,</span> <span class="n">pdb</span><span class="p">,</span> <span class="n">qid</span><span class="p">,</span> <span class="n">e_value</span> <span class="o">=</span> <span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">p</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">p</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">p</span><span class="p">[</span><span class="mi">10</span><span class="p">]</span>
+      <span class="n">M</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">M</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">M</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">templates</span><span class="p">:</span>
+        <span class="n">templates</span><span class="p">[</span><span class="n">M</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="n">templates</span><span class="p">[</span><span class="n">M</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pdb</span><span class="p">)</span>
+      <span class="c1"># if len(templates[M]) &lt;= 20:</span>
+      <span class="c1">#  print(f&quot;{int(M)-N}\t{pdb}\t{qid}\t{e_value}&quot;)</span>
+
+    <span class="n">template_paths</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">TMPL</span> <span class="ow">in</span> <span class="n">templates</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+      <span class="n">TMPL_PATH</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">output</span><span class="si">}</span><span class="s2">/templates_</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">&quot;</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">TMPL_PATH</span><span class="p">):</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">TMPL_PATH</span><span class="p">)</span>
+        <span class="n">TMPL_LINE</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">TMPL</span><span class="p">[:</span><span class="mi">20</span><span class="p">])</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+          <span class="n">error_count</span> <span class="o">=</span> <span class="mi">0</span>
+          <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># https://requests.readthedocs.io/en/latest/user/advanced/#advanced</span>
+            <span class="c1"># &quot;good practice to set connect timeouts to slightly larger than a multiple of 3&quot;</span>
+            <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">host_url</span><span class="si">}</span><span class="s2">/template/</span><span class="si">{</span><span class="n">TMPL_LINE</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">6.02</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">)</span>
+          <span class="k">except</span> <span class="n">requests</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">Timeout</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Timeout while submitting to template server. Retrying...&quot;</span><span class="p">)</span>
+            <span class="k">continue</span>
+          <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">error_count</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error while fetching result from template server. Retrying... (</span><span class="si">{</span><span class="n">error_count</span><span class="si">}</span><span class="s2">/5)&quot;</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">error_count</span> <span class="o">&gt;</span> <span class="mi">5</span><span class="p">:</span>
+              <span class="k">raise</span>
+            <span class="k">continue</span>
+          <span class="k">break</span>
+        <span class="k">with</span> <span class="n">tarfile</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">fileobj</span><span class="o">=</span><span class="n">response</span><span class="o">.</span><span class="n">raw</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;r|gz&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">tar</span><span class="p">:</span>
+          <span class="n">tar</span><span class="o">.</span><span class="n">extractall</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">TMPL_PATH</span><span class="p">,</span> <span class="nb">filter</span><span class="o">=</span><span class="s2">&quot;data&quot;</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">symlink</span><span class="p">(</span><span class="s2">&quot;pdb70_a3m.ffindex&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">TMPL_PATH</span><span class="si">}</span><span class="s2">/pdb70_cs219.ffindex&quot;</span><span class="p">)</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">TMPL_PATH</span><span class="si">}</span><span class="s2">/pdb70_cs219.ffdata&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+          <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+      <span class="n">template_paths</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">TMPL_PATH</span>
+    <span class="n">template_paths_</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">Ms</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">n</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">template_paths</span><span class="p">:</span>
+        <span class="n">template_paths_</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+        <span class="c1"># print(f&quot;{n-N}\tno_templates_found&quot;)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">template_paths_</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">template_paths</span><span class="p">[</span><span class="n">n</span><span class="p">])</span>
+    <span class="n">template_paths</span> <span class="o">=</span> <span class="n">template_paths_</span>
+
+  <span class="k">if</span> <span class="n">use_templates</span><span class="p">:</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">a3m_lines</span><span class="p">,</span> <span class="n">template_paths</span><span class="p">)</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">a3m_lines</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="run_mmseqs2_modes">
+<a class="viewcode-back" href="../../neurosnap.html#neurosnap.msa.run_mmseqs2_modes">[docs]</a>
+<span class="k">def</span> <span class="nf">run_mmseqs2_modes</span><span class="p">(</span>
+  <span class="n">seq</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span>
+  <span class="n">output</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+  <span class="n">cov</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span>
+  <span class="nb">id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">90</span><span class="p">,</span>
+  <span class="n">max_msa</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2048</span><span class="p">,</span>
+  <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;unpaired_paired&quot;</span><span class="p">,</span>
+  <span class="n">print_citations</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">  Generate a multiple sequence alignment (MSA) for the given sequence(s)</span>
+<span class="sd">  using Colabfold&#39;s API. Key difference between this function and</span>
+<span class="sd">  run_mmseqs2 is that this function supports different modes.</span>
+<span class="sd">  The final a3m and most useful a3m file will be written as &quot;output/final.a3m&quot;.</span>
+<span class="sd">  Code originally adapted from: https://github.com/sokrypton/ColabFold/</span>
+
+<span class="sd">  Parameters:</span>
+<span class="sd">    seq: Sequence(s) to generate the MSA for. If a list of sequences is</span>
+<span class="sd">      provided, they will be considered as a single protein for the MSA.</span>
+<span class="sd">    output: Output directory path, will overwrite existing results.</span>
+<span class="sd">    cov: Coverage of the MSA</span>
+<span class="sd">    id: Identity threshold for the MSA</span>
+<span class="sd">    max_msa: Maximum number of sequences in the MSA</span>
+<span class="sd">    mode: Mode to run the MSA generation in. Must be in ``[&quot;unpaired&quot;, &quot;paired&quot;, &quot;unpaired_paired&quot;]``</span>
+<span class="sd">    print_citations: Whether to print the citations in the output.</span>
+
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="n">print_citations</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">MMSEQS2_CITATION</span><span class="p">)</span>
+  <span class="c1"># Check if HH-suite is installed and available</span>
+  <span class="n">hhfilter_path</span> <span class="o">=</span> <span class="n">shutil</span><span class="o">.</span><span class="n">which</span><span class="p">(</span><span class="s2">&quot;hhfilter&quot;</span><span class="p">)</span>
+  <span class="k">assert</span> <span class="n">hhfilter_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span>
+    <span class="s2">&quot;HH-suite not found. Please ensure it is installed and available in your PATH. &quot;</span>
+    <span class="s2">&quot;For installation instructions, visit: https://github.com/soedinglab/hh-suite&quot;</span>
+  <span class="p">)</span>
+  <span class="c1"># Validate the mode</span>
+  <span class="k">assert</span> <span class="n">mode</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;unpaired&quot;</span><span class="p">,</span> <span class="s2">&quot;paired&quot;</span><span class="p">,</span> <span class="s2">&quot;unpaired_paired&quot;</span><span class="p">],</span> <span class="s2">&quot;Invalid mode&quot;</span>
+
+  <span class="n">seqs</span> <span class="o">=</span> <span class="p">[</span><span class="n">seq</span><span class="p">]</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">seq</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">else</span> <span class="n">seq</span>
+  <span class="c1"># Collapse homooligomeric sequences</span>
+  <span class="n">counts</span> <span class="o">=</span> <span class="n">Counter</span><span class="p">(</span><span class="n">seqs</span><span class="p">)</span>
+  <span class="n">u_seqs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">counts</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+  <span class="n">u_nums</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">counts</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+
+  <span class="c1"># Expand homooligomeric sequences</span>
+  <span class="n">first_seq</span> <span class="o">=</span> <span class="s2">&quot;/&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">sum</span><span class="p">([[</span><span class="n">x</span><span class="p">]</span> <span class="o">*</span> <span class="n">n</span> <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">u_seqs</span><span class="p">,</span> <span class="n">u_nums</span><span class="p">)],</span> <span class="p">[]))</span>
+  <span class="n">msa</span> <span class="o">=</span> <span class="p">[</span><span class="n">first_seq</span><span class="p">]</span>
+
+  <span class="c1"># Handle paired MSA if applicable</span>
+  <span class="k">if</span> <span class="n">mode</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;paired&quot;</span><span class="p">,</span> <span class="s2">&quot;unpaired_paired&quot;</span><span class="p">]</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">u_seqs</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Getting paired MSA&quot;</span><span class="p">)</span>
+    <span class="n">out_paired</span> <span class="o">=</span> <span class="n">run_mmseqs2</span><span class="p">(</span><span class="n">u_seqs</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span> <span class="n">pairing</span><span class="o">=</span><span class="s2">&quot;greedy&quot;</span><span class="p">,</span> <span class="n">print_citations</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">headers</span><span class="p">,</span> <span class="n">sequences</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">a3m_lines</span> <span class="ow">in</span> <span class="n">out_paired</span><span class="p">:</span>
+      <span class="n">n</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+      <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">a3m_lines</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">line</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+          <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;&gt;&quot;</span><span class="p">):</span>
+            <span class="n">n</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">headers</span><span class="p">)</span> <span class="o">&lt;</span> <span class="p">(</span><span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+              <span class="n">headers</span><span class="o">.</span><span class="n">append</span><span class="p">([])</span>
+              <span class="n">sequences</span><span class="o">.</span><span class="n">append</span><span class="p">([])</span>
+            <span class="n">headers</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+          <span class="k">else</span><span class="p">:</span>
+            <span class="n">sequences</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+    <span class="c1"># Filter MSA</span>
+    <span class="n">paired_in_fpath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="s2">&quot;paired_in.a3m&quot;</span><span class="p">)</span>
+    <span class="n">paired_out_fpath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="s2">&quot;paired_out.a3m&quot;</span><span class="p">)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">paired_in_fpath</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+      <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">sequence</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">sequences</span><span class="p">):</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&gt;n</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="se">\n</span><span class="si">{</span><span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">sequence</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;hhfilter -i </span><span class="si">{</span><span class="n">paired_in_fpath</span><span class="si">}</span><span class="s2"> -id </span><span class="si">{</span><span class="nb">id</span><span class="si">}</span><span class="s2"> -cov </span><span class="si">{</span><span class="n">cov</span><span class="si">}</span><span class="s2"> -o </span><span class="si">{</span><span class="n">paired_out_fpath</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">paired_out_fpath</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+      <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;&gt;&quot;</span><span class="p">):</span>
+          <span class="n">n</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="p">[</span><span class="mi">2</span><span class="p">:])</span>
+          <span class="n">xs</span> <span class="o">=</span> <span class="n">sequences</span><span class="p">[</span><span class="n">n</span><span class="p">]</span>
+          <span class="c1"># Expand homooligomeric sequences</span>
+          <span class="n">xs</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;/&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">x</span><span class="p">]</span> <span class="o">*</span> <span class="n">num</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">num</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">u_nums</span><span class="p">)]</span>
+          <span class="n">msa</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">xs</span><span class="p">))</span>
+
+  <span class="c1"># Handle unpaired MSA if applicable</span>
+  <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">msa</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">max_msa</span> <span class="ow">and</span> <span class="p">(</span><span class="n">mode</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;unpaired&quot;</span><span class="p">,</span> <span class="s2">&quot;unpaired_paired&quot;</span><span class="p">]</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">u_seqs</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Getting unpaired MSA&quot;</span><span class="p">)</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">run_mmseqs2</span><span class="p">(</span><span class="n">u_seqs</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span> <span class="n">pairing</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">print_citations</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">Ls</span> <span class="o">=</span> <span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">seq</span><span class="p">)</span> <span class="k">for</span> <span class="n">seq</span> <span class="ow">in</span> <span class="n">u_seqs</span><span class="p">]</span>
+    <span class="n">sub_idx</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">sub_msa</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">sub_msa_num</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">a3m_lines</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">out</span><span class="p">):</span>
+      <span class="n">sub_msa</span><span class="o">.</span><span class="n">append</span><span class="p">([])</span>
+      <span class="n">in_fpath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;in_</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2">.a3m&quot;</span><span class="p">)</span>
+      <span class="n">out_fpath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;out_</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2">.a3m&quot;</span><span class="p">)</span>
+      <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">in_fpath</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">a3m_lines</span><span class="p">)</span>
+
+      <span class="c1"># Filter</span>
+      <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;hhfilter -i </span><span class="si">{</span><span class="n">in_fpath</span><span class="si">}</span><span class="s2"> -id </span><span class="si">{</span><span class="nb">id</span><span class="si">}</span><span class="s2"> -cov </span><span class="si">{</span><span class="n">cov</span><span class="si">}</span><span class="s2"> -o </span><span class="si">{</span><span class="n">out_fpath</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+      <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">out_fpath</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
+          <span class="k">if</span> <span class="ow">not</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;&gt;&quot;</span><span class="p">):</span>
+            <span class="n">xs</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;-&quot;</span> <span class="o">*</span> <span class="n">l</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">Ls</span><span class="p">]</span>
+            <span class="n">xs</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()</span>
+            <span class="c1"># Expand homooligomeric sequences</span>
+            <span class="n">xs</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;/&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">x</span><span class="p">]</span> <span class="o">*</span> <span class="n">num</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">num</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">u_nums</span><span class="p">)]</span>
+            <span class="n">sub_msa</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">xs</span><span class="p">))</span>
+            <span class="n">sub_msa_num</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">sub_idx</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">sub_msa</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]))))</span>
+
+    <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">msa</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">max_msa</span> <span class="ow">and</span> <span class="n">sub_msa_num</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">sub_idx</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sub_idx</span><span class="p">[</span><span class="n">n</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+          <span class="n">msa</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sub_msa</span><span class="p">[</span><span class="n">n</span><span class="p">][</span><span class="n">sub_idx</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)])</span>
+          <span class="n">sub_msa_num</span> <span class="o">-=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">msa</span><span class="p">)</span> <span class="o">==</span> <span class="n">max_msa</span><span class="p">:</span>
+          <span class="k">break</span>
+
+  <span class="c1"># Write final MSA to file</span>
+  <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="s2">&quot;final.a3m&quot;</span><span class="p">),</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">sequence</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">msa</span><span class="p">):</span>
+      <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&gt;n</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="se">\n</span><span class="si">{</span><span class="n">sequence</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Keaun Amani.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
