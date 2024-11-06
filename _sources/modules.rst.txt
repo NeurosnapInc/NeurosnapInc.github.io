@@ -4,4 +4,9 @@ neurosnap
 .. toctree::
    :maxdepth: 4
 
-   neurosnap
+   api
+   chemicals
+   conformers
+   log
+   msa
+   protein
