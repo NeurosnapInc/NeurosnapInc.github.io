@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>neurosnap.chemicals &mdash; neurosnap 0.0.64 documentation</title>
-      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+  <title>neurosnap.chemicals &mdash; neurosnap 2025.01.08 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
 
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=b153cf10"></script>
+      <script src="../../_static/documentation_options.js?v=ad7aade1"></script>
       <script src="../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
@@ -39,9 +39,9 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Documentation</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../neurosnap.html">neurosnap package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">neurosnap</a></li>
 </ul>
 
         </div>
@@ -73,14 +73,20 @@
 <span class="sd">Provides functions and classes related to processing chemical data.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">rdkit</span> <span class="kn">import</span> <span class="n">Chem</span>
-<span class="kn">from</span> <span class="nn">neurosnap.log</span> <span class="kn">import</span> <span class="n">logger</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Set</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">requests</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">rdkit</span><span class="w"> </span><span class="kn">import</span> <span class="n">Chem</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">neurosnap.log</span><span class="w"> </span><span class="kn">import</span> <span class="n">logger</span>
 
 
 <span class="c1">### FUNCTIONS ###</span>
 <div class="viewcode-block" id="smiles_to_sdf">
 <a class="viewcode-back" href="../../neurosnap.html#neurosnap.chemicals.smiles_to_sdf">[docs]</a>
-<span class="k">def</span> <span class="nf">smiles_to_sdf</span><span class="p">(</span><span class="n">smiles</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">output_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">smiles_to_sdf</span><span class="p">(</span><span class="n">smiles</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">output_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">  </span><span class="sd">&quot;&quot;&quot;Converts a SMILES string to an sdf file.</span>
 <span class="sd">  Will overwrite existing results.</span>
 
@@ -102,6 +108,156 @@
     <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Exception </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;&quot;</span><span class="si">{</span><span class="n">smiles</span><span class="si">}</span><span class="s1">&quot; is not a valid SMILES string, please follow the input instructions&#39;</span><span class="p">)</span></div>
 
+
+
+<div class="viewcode-block" id="sdf_to_smiles">
+<a class="viewcode-back" href="../../neurosnap.html#neurosnap.chemicals.sdf_to_smiles">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">sdf_to_smiles</span><span class="p">(</span><span class="n">fpath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">  Converts molecules in an SDF file to SMILES strings.</span>
+
+<span class="sd">  Reads an input SDF file and extracts SMILES strings from its molecules.</span>
+<span class="sd">  Invalid or unreadable molecules are skipped, with warnings logged.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    fpath (str): Path to the input SDF file.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    List[str]: A list of SMILES strings corresponding to valid molecules in the SDF file.</span>
+
+<span class="sd">  Raises:</span>
+<span class="sd">    FileNotFoundError: If the SDF file cannot be found.</span>
+<span class="sd">    IOError: If the file cannot be read.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">output_smiles</span> <span class="o">=</span> <span class="p">[]</span>
+  <span class="n">supplier</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">SDMolSupplier</span><span class="p">(</span><span class="n">fpath</span><span class="p">,</span> <span class="n">removeHs</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>  <span class="c1"># Keep hydrogens if present</span>
+  <span class="k">for</span> <span class="n">mol</span> <span class="ow">in</span> <span class="n">supplier</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">mol</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Skipped an invalid molecule.&quot;</span><span class="p">)</span>
+      <span class="k">continue</span>
+    <span class="k">try</span><span class="p">:</span>
+      <span class="n">smiles</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolToSmiles</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
+      <span class="n">output_smiles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">smiles</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+      <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error converting molecule to SMILES: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">output_smiles</span></div>
+
+
+
+<div class="viewcode-block" id="validate_smiles">
+<a class="viewcode-back" href="../../neurosnap.html#neurosnap.chemicals.validate_smiles">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">validate_smiles</span><span class="p">(</span><span class="n">smiles</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">  Validates a SMILES (Simplified Molecular Input Line Entry System) string.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    smiles (str): The SMILES string to validate.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    bool: True if the SMILES string is valid, False otherwise.</span>
+
+<span class="sd">  Raises:</span>
+<span class="sd">    Exception: Logs any exception encountered during validation.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">try</span><span class="p">:</span>
+    <span class="n">mol</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Chem</span><span class="o">.</span><span class="n">Mol</span><span class="p">]</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolFromSmiles</span><span class="p">(</span><span class="n">smiles</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">mol</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+  <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error validating SMILES: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="kc">False</span></div>
+
+
+
+<div class="viewcode-block" id="get_ccds">
+<a class="viewcode-back" href="../../neurosnap.html#neurosnap.chemicals.get_ccds">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_ccds</span><span class="p">(</span><span class="n">fpath</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;~/.cache/ccd_codes.json&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Set</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">  Retrieves a set of all CCD (Chemical Component Dictionary) codes from the PDB.</span>
+
+<span class="sd">  This function checks for a locally cached JSON file with the CCD codes.</span>
+<span class="sd">  - If the file exists, it reads and returns the set of codes from the cache.</span>
+<span class="sd">  - If the file does not exist, it downloads the full Chemical Component Dictionary</span>
+<span class="sd">    (in mmCIF format) from the Protein Data Bank (PDB), extracts the CCD codes,</span>
+<span class="sd">    and caches them in a JSON file for future use.</span>
+
+<span class="sd">  Parameters:</span>
+<span class="sd">      fpath: The path to store / cache all the stored ccd_codes as a JSON file.</span>
+<span class="sd">              Default is &quot;~/.cache/ccd_codes.json&quot;</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">      set: A set of all CCD codes (three-letter codes representing small molecules,</span>
+<span class="sd">            ligands, and post-translational modifications).</span>
+
+<span class="sd">  Raises:</span>
+<span class="sd">      HTTPError: If the request to the PDB server fails.</span>
+<span class="sd">      JSONDecodeError: If the cached JSON file is corrupted.</span>
+
+<span class="sd">  File Cache:</span>
+<span class="sd">      - Cached file path: &quot;.cache/ccd_codes.json&quot;</span>
+<span class="sd">      - The cache is automatically updated if it does not exist.</span>
+
+<span class="sd">  External Resources:</span>
+<span class="sd">      - CCD information: https://www.wwpdb.org/data/ccd</span>
+<span class="sd">      - CCD data download: https://files.wwpdb.org/pub/pdb/data/monomers/components.cif</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">fpath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(</span><span class="n">fpath</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">fpath</span><span class="p">):</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Found CCD codes cached locally.&quot;</span><span class="p">)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fpath</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+      <span class="k">return</span> <span class="nb">set</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">))</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;No CCD codes cached locally, downloading now.&quot;</span><span class="p">)</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;https://files.wwpdb.org/pub/pdb/data/monomers/components.cif&quot;</span><span class="p">)</span>
+    <span class="n">r</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Finished downloading CCD codes.&quot;</span><span class="p">)</span>
+
+    <span class="n">codes</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">r</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">):</span>
+      <span class="k">if</span> <span class="s2">&quot;_chem_comp.three_letter_code&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+        <span class="n">code</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">code</span> <span class="o">!=</span> <span class="s2">&quot;?&quot;</span><span class="p">:</span>
+          <span class="n">codes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">code</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fpath</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+      <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">codes</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="nb">set</span><span class="p">(</span><span class="n">codes</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="fetch_ccd">
+<a class="viewcode-back" href="../../neurosnap.html#neurosnap.chemicals.fetch_ccd">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">fetch_ccd</span><span class="p">(</span><span class="n">ccd_code</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">fpath</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">  Fetches the ideal SDF (Structure Data File) for a given CCD (Chemical Component Dictionary) code</span>
+<span class="sd">  and saves it to the specified file path.</span>
+
+<span class="sd">  This function retrieves the idealized structure of a chemical component from the RCSB Protein</span>
+<span class="sd">  Data Bank (PDB) by downloading the corresponding SDF file. The downloaded file is then saved</span>
+<span class="sd">  to the specified location.</span>
+
+<span class="sd">  Parameters:</span>
+<span class="sd">      ccd_code (str): The three-letter CCD code representing the chemical component (e.g., &quot;ATP&quot;).</span>
+<span class="sd">      fpath (str): The file path where the downloaded SDF file will be saved.</span>
+
+<span class="sd">  Raises:</span>
+<span class="sd">      HTTPError: If the request to fetch the SDF file fails (e.g., 404 or connection error).</span>
+<span class="sd">      IOError: If there is an issue saving the SDF file to the specified file path.</span>
+
+<span class="sd">  Example:</span>
+<span class="sd">      &gt;&gt;&gt; fetch_ccd(&quot;ATP&quot;, &quot;ATP_ideal.sdf&quot;)</span>
+<span class="sd">      Fetches the ideal SDF file for the ATP molecule and saves it as &quot;ATP_ideal.sdf&quot;.</span>
+
+<span class="sd">  External Resources:</span>
+<span class="sd">      - CCD Information: https://www.wwpdb.org/data/ccd</span>
+<span class="sd">      - SDF File Download: https://files.rcsb.org/ligands/download/{CCD_CODE}_ideal.sdf</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Fetching CCD with code </span><span class="si">{</span><span class="n">ccd_code</span><span class="si">}</span><span class="s2"> from rcsb.org...&quot;</span><span class="p">)</span>
+  <span class="n">r</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;https://files.rcsb.org/ligands/download/</span><span class="si">{</span><span class="n">ccd_code</span><span class="si">}</span><span class="s2">_ideal.sdf&quot;</span><span class="p">)</span>
+  <span class="n">r</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
+  <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fpath</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">content</span><span class="p">)</span></div>
+
 </pre></div>
 
            </div>
@@ -111,7 +267,7 @@
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2024, Neurosnap Inc..</p>
+    <p>&#169; Copyright 2022-2025, Neurosnap Inc..</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

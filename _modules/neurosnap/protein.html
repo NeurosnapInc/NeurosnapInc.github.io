@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>neurosnap.protein &mdash; neurosnap 0.0.64 documentation</title>
-      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+  <title>neurosnap.protein &mdash; neurosnap 2025.01.08 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
 
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=b153cf10"></script>
+      <script src="../../_static/documentation_options.js?v=ad7aade1"></script>
       <script src="../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
@@ -39,9 +39,9 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Documentation</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../neurosnap.html">neurosnap package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">neurosnap</a></li>
 </ul>
 
         </div>
@@ -74,33 +74,34 @@
 <span class="sd">a feature rich wrapper around protein structures using BioPython.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
-<span class="kn">import</span> <span class="nn">io</span>
-<span class="kn">import</span> <span class="nn">json</span>
-<span class="kn">import</span> <span class="nn">os</span>
-<span class="kn">import</span> <span class="nn">tempfile</span>
-<span class="kn">import</span> <span class="nn">time</span>
-<span class="kn">import</span> <span class="nn">xml.etree.ElementTree</span> <span class="k">as</span> <span class="nn">ET</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">io</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">shutil</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">tempfile</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">xml.etree.ElementTree</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">ET</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
 
-<span class="kn">import</span> <span class="nn">matplotlib</span>
-<span class="kn">import</span> <span class="nn">matplotlib.animation</span> <span class="k">as</span> <span class="nn">animation</span>
-<span class="kn">import</span> <span class="nn">matplotlib.patheffects</span>
-<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
-<span class="kn">import</span> <span class="nn">requests</span>
-<span class="kn">from</span> <span class="nn">Bio.PDB</span> <span class="kn">import</span> <span class="n">PDBIO</span><span class="p">,</span> <span class="n">SASA</span><span class="p">,</span> <span class="n">PDBParser</span><span class="p">,</span> <span class="n">PPBuilder</span>
-<span class="kn">from</span> <span class="nn">Bio.PDB.mmcifio</span> <span class="kn">import</span> <span class="n">MMCIFIO</span>
-<span class="kn">from</span> <span class="nn">Bio.PDB.Polypeptide</span> <span class="kn">import</span> <span class="n">is_aa</span>
-<span class="kn">from</span> <span class="nn">Bio.PDB.Superimposer</span> <span class="kn">import</span> <span class="n">Superimposer</span>
-<span class="kn">from</span> <span class="nn">matplotlib</span> <span class="kn">import</span> <span class="n">collections</span> <span class="k">as</span> <span class="n">mcoll</span>
-<span class="kn">from</span> <span class="nn">rdkit</span> <span class="kn">import</span> <span class="n">Chem</span>
-<span class="kn">from</span> <span class="nn">requests_toolbelt.multipart.encoder</span> <span class="kn">import</span> <span class="n">MultipartEncoder</span>
-<span class="kn">from</span> <span class="nn">scipy.special</span> <span class="kn">import</span> <span class="n">expit</span> <span class="k">as</span> <span class="n">sigmoid</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.animation</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">animation</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.patheffects</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">requests</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">Bio.PDB</span><span class="w"> </span><span class="kn">import</span> <span class="n">PDBIO</span><span class="p">,</span> <span class="n">SASA</span><span class="p">,</span> <span class="n">PDBParser</span><span class="p">,</span> <span class="n">PPBuilder</span><span class="p">,</span> <span class="n">MMCIFParser</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">Bio.PDB.mmcifio</span><span class="w"> </span><span class="kn">import</span> <span class="n">MMCIFIO</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">Bio.PDB.Polypeptide</span><span class="w"> </span><span class="kn">import</span> <span class="n">is_aa</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">Bio.PDB.Superimposer</span><span class="w"> </span><span class="kn">import</span> <span class="n">Superimposer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">matplotlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">collections</span> <span class="k">as</span> <span class="n">mcoll</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">rdkit</span><span class="w"> </span><span class="kn">import</span> <span class="n">Chem</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">requests_toolbelt.multipart.encoder</span><span class="w"> </span><span class="kn">import</span> <span class="n">MultipartEncoder</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy.special</span><span class="w"> </span><span class="kn">import</span> <span class="n">expit</span> <span class="k">as</span> <span class="n">sigmoid</span>
 
-<span class="kn">import</span> <span class="nn">neurosnap.algos.lDDT</span> <span class="k">as</span> <span class="nn">lDDT</span>
-<span class="kn">from</span> <span class="nn">neurosnap.api</span> <span class="kn">import</span> <span class="n">USER_AGENT</span>
-<span class="kn">from</span> <span class="nn">neurosnap.log</span> <span class="kn">import</span> <span class="n">logger</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">neurosnap.algos.lDDT</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">lDDT</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">neurosnap.api</span><span class="w"> </span><span class="kn">import</span> <span class="n">USER_AGENT</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">neurosnap.log</span><span class="w"> </span><span class="kn">import</span> <span class="n">logger</span>
 
 <span class="c1">### CONSTANTS ###</span>
 <span class="c1"># Names of atoms that are part of a protein&#39;s backbone structure</span>
@@ -117,6 +118,28 @@
 <span class="c1"># X | UNK | unknown codon</span>
 <span class="c1"># * | TRM | termination codon</span>
 <span class="n">STANDARD_AAs</span> <span class="o">=</span> <span class="s2">&quot;ACDEFGHIKLMNPQRSTVWY&quot;</span>
+<span class="n">STANDARD_AAs_ABR</span> <span class="o">=</span> <span class="p">{</span>
+  <span class="s2">&quot;ALA&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;ARG&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;ASN&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;ASP&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;CYS&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;GLN&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;GLU&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;GLY&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;HIS&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;ILE&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;LEU&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;LYS&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;MET&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;PHE&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;PRO&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;SER&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;THR&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;TRP&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;TYR&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;VAL&quot;</span><span class="p">,</span>
+<span class="p">}</span>
 <span class="c1"># List of hydrophobic residues</span>
 <span class="n">HYDROPHOBIC_RESIDUES</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;ALA&quot;</span><span class="p">,</span> <span class="s2">&quot;VAL&quot;</span><span class="p">,</span> <span class="s2">&quot;LEU&quot;</span><span class="p">,</span> <span class="s2">&quot;ILE&quot;</span><span class="p">,</span> <span class="s2">&quot;MET&quot;</span><span class="p">,</span> <span class="s2">&quot;PHE&quot;</span><span class="p">,</span> <span class="s2">&quot;TRP&quot;</span><span class="p">,</span> <span class="s2">&quot;PRO&quot;</span><span class="p">}</span>
 
@@ -167,20 +190,20 @@
 <span class="c1">### CLASSES ###</span>
 <div class="viewcode-block" id="Protein">
 <a class="viewcode-back" href="../../neurosnap.html#neurosnap.protein.Protein">[docs]</a>
-<span class="k">class</span> <span class="nc">Protein</span><span class="p">:</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Protein</span><span class="p">:</span>
 <div class="viewcode-block" id="Protein.__init__">
 <a class="viewcode-back" href="../../neurosnap.html#neurosnap.protein.Protein.__init__">[docs]</a>
-  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pdb</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="n">io</span><span class="o">.</span><span class="n">IOBase</span><span class="p">]):</span>
+  <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pdb</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">io</span><span class="o">.</span><span class="n">IOBase</span><span class="p">],</span> <span class="nb">format</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;auto&quot;</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Class that wraps around a protein structure.</span>
 
 <span class="sd">    Utilizes the biopython protein structure under the hood.</span>
 <span class="sd">    Atoms that are not part of a chain will automatically be</span>
 <span class="sd">    added to a new chain that does not overlap with any</span>
 <span class="sd">    existing chains.</span>
-
+<span class="sd">I</span>
 <span class="sd">    Parameters:</span>
-<span class="sd">      pdb: Can be either a file handle, PDB filepath, PDB ID, or UniProt ID</span>
-
+<span class="sd">      pdb: Can be either a file handle, PDB or mmCIF filepath, PDB ID, or UniProt ID</span>
+<span class="sd">      format: File format of the input (&quot;pdb&quot;, &quot;mmcif&quot;, or &quot;auto&quot; to infer format from extension)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">title</span> <span class="o">=</span> <span class="s2">&quot;Untitled Protein&quot;</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pdb</span><span class="p">,</span> <span class="n">io</span><span class="o">.</span><span class="n">IOBase</span><span class="p">):</span>
@@ -211,8 +234,23 @@
     <span class="k">else</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid input type provided. Can be either a file handle, PDB filepath, PDB ID, or UniProt ID&quot;</span><span class="p">)</span>
 
+    <span class="c1"># Infer format if set to auto</span>
+    <span class="k">if</span> <span class="nb">format</span> <span class="o">==</span> <span class="s2">&quot;auto&quot;</span><span class="p">:</span>
+      <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">pdb</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.pdb&quot;</span><span class="p">):</span>
+        <span class="nb">format</span> <span class="o">=</span> <span class="s2">&quot;pdb&quot;</span>
+      <span class="k">elif</span> <span class="nb">str</span><span class="p">(</span><span class="n">pdb</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.cif&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">str</span><span class="p">(</span><span class="n">pdb</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.mmcif&quot;</span><span class="p">):</span>
+        <span class="nb">format</span> <span class="o">=</span> <span class="s2">&quot;mmcif&quot;</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Failed to infer format. Please specify format explicitly as &#39;pdb&#39; or &#39;mmcif&#39;.&quot;</span><span class="p">)</span>
+
     <span class="c1"># load structure</span>
-    <span class="n">parser</span> <span class="o">=</span> <span class="n">PDBParser</span><span class="p">()</span>
+    <span class="k">if</span> <span class="nb">format</span> <span class="o">==</span> <span class="s2">&quot;pdb&quot;</span><span class="p">:</span>
+      <span class="n">parser</span> <span class="o">=</span> <span class="n">PDBParser</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="nb">format</span> <span class="o">==</span> <span class="s2">&quot;mmcif&quot;</span><span class="p">:</span>
+      <span class="n">parser</span> <span class="o">=</span> <span class="n">MMCIFParser</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid format specified. Supported formats are &#39;pdb&#39; or &#39;mmcif&#39;.&quot;</span><span class="p">)</span>
+
     <span class="bp">self</span><span class="o">.</span><span class="n">structure</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">get_structure</span><span class="p">(</span><span class="s2">&quot;structure&quot;</span><span class="p">,</span> <span class="n">pdb</span><span class="p">)</span>
     <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="p">),</span> <span class="s2">&quot;No models found. Structure appears to be empty.&quot;</span>
 
@@ -252,12 +290,12 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">generate_df</span><span class="p">()</span></div>
 
 
-  <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+  <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;&lt;Neurosnap Protein: Title=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">title</span><span class="si">}</span><span class="s2"> Models=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="p">()</span><span class="si">}</span><span class="s2">, Chains=[</span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">chains</span><span class="p">())</span><span class="si">}</span><span class="s2">], Atoms=</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">)</span><span class="si">}</span><span class="s2">&gt;&quot;</span>
 
 <div class="viewcode-block" id="Protein.__call__">
 <a class="viewcode-back" href="../../neurosnap.html#neurosnap.protein.Protein.__call__">[docs]</a>
-  <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">chain</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">res_type</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+  <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">chain</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">res_type</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Returns a selection of a copy of the internal dataframe</span>
 <span class="sd">    that matches the provided query. If no queries are</span>
 <span class="sd">    provided, will return a copy of the internal dataframe.</span>
@@ -283,7 +321,7 @@
 
 <div class="viewcode-block" id="Protein.__sub__">
 <a class="viewcode-back" href="../../neurosnap.html#neurosnap.protein.Protein.__sub__">[docs]</a>
-  <span class="k">def</span> <span class="fm">__sub__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other_protein</span><span class="p">:</span> <span class="s2">&quot;Protein&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+  <span class="k">def</span><span class="w"> </span><span class="fm">__sub__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other_protein</span><span class="p">:</span> <span class="s2">&quot;Protein&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Automatically calculate the RMSD of two proteins.</span>
 <span class="sd">    Model used will naively be the first models that have</span>
 <span class="sd">    identical backbone shapes.</span>
@@ -316,7 +354,7 @@
 
 <div class="viewcode-block" id="Protein.models">
 <a class="viewcode-back" href="../../neurosnap.html#neurosnap.protein.Protein.models">[docs]</a>
-  <span class="k">def</span> <span class="nf">models</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+  <span class="k">def</span><span class="w"> </span><span class="nf">models</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Returns a list of all the model names/IDs.</span>
 
 <span class="sd">    Returns:</span>
@@ -328,7 +366,7 @@
 
 <div class="viewcode-block" id="Protein.chains">
 <a class="viewcode-back" href="../../neurosnap.html#neurosnap.protein.Protein.chains">[docs]</a>
-  <span class="k">def</span> <span class="nf">chains</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+  <span class="k">def</span><span class="w"> </span><span class="nf">chains</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Returns a list of all the chain names/IDs.</span>
 
 <span class="sd">    Parameters:</span>
@@ -343,7 +381,7 @@
 
 <div class="viewcode-block" id="Protein.generate_df">
 <a class="viewcode-back" href="../../neurosnap.html#neurosnap.protein.Protein.generate_df">[docs]</a>
-  <span class="k">def</span> <span class="nf">generate_df</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+  <span class="k">def</span><span class="w"> </span><span class="nf">generate_df</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Generate the biopandas-like dataframe and update the</span>
 <span class="sd">    value of self.df to the new dataframe.</span>
 <span class="sd">    This method should be called whenever the internal</span>
@@ -394,7 +432,7 @@
 
 <div class="viewcode-block" id="Protein.get_aas">
 <a class="viewcode-back" href="../../neurosnap.html#neurosnap.protein.Protein.get_aas">[docs]</a>
-  <span class="k">def</span> <span class="nf">get_aas</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">chain</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+  <span class="k">def</span><span class="w"> </span><span class="nf">get_aas</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">chain</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Returns the amino acid sequence of a target chain.</span>
 <span class="sd">    Ligands, small molecules, and nucleotides are ignored.</span>
 
@@ -415,7 +453,7 @@
 
 <div class="viewcode-block" id="Protein.renumber">
 <a class="viewcode-back" href="../../neurosnap.html#neurosnap.protein.Protein.renumber">[docs]</a>
-  <span class="k">def</span> <span class="nf">renumber</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">chain</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">start</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">):</span>
+  <span class="k">def</span><span class="w"> </span><span class="nf">renumber</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">chain</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">start</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Renumbers all selected residues. If selection does not</span>
 <span class="sd">    exist this function will do absolutely nothing.</span>
 
@@ -426,7 +464,7 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">aux</span><span class="p">(</span><span class="n">start</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">aux</span><span class="p">(</span><span class="n">start</span><span class="p">):</span>
       <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">m</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">model</span><span class="p">:</span>
           <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">m</span><span class="p">:</span>
@@ -446,7 +484,7 @@
 
 <div class="viewcode-block" id="Protein.remove_waters">
 <a class="viewcode-back" href="../../neurosnap.html#neurosnap.protein.Protein.remove_waters">[docs]</a>
-  <span class="k">def</span> <span class="nf">remove_waters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+  <span class="k">def</span><span class="w"> </span><span class="nf">remove_waters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Removes all water molecules (residues named &#39;WAT&#39; or &#39;HOH&#39;)</span>
 <span class="sd">    from the structure. It is suggested to call :obj:`.renumber()`</span>
 <span class="sd">    afterwards as well.</span>
@@ -464,41 +502,9 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">generate_df</span><span class="p">()</span></div>
 
 
-<div class="viewcode-block" id="Protein.remove_non_biopolymers">
-<a class="viewcode-back" href="../../neurosnap.html#neurosnap.protein.Protein.remove_non_biopolymers">[docs]</a>
-  <span class="k">def</span> <span class="nf">remove_non_biopolymers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">chain</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Removes all ligands, heteroatoms, and non-biopolymer</span>
-<span class="sd">    residues from the selected structure. Non-biopolymer</span>
-<span class="sd">    residues are considered to be any residues that are not</span>
-<span class="sd">    standard amino acids or standard nucleotides (DNA/RNA).</span>
-<span class="sd">    If no model or chain is provided, it will remove from</span>
-<span class="sd">    the entire structure.</span>
-
-<span class="sd">    Parameters:</span>
-<span class="sd">      model: The model ID to process. If ``None``, will use all models.</span>
-<span class="sd">      chain: The chain ID to process. If ``None``, will use all chains.</span>
-
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="c1"># List of standard amino acids and nucleotides (biopolymer residues)</span>
-    <span class="n">biopolymer_residues</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">AA_ABR_TO_CODE</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="n">STANDARD_NUCLEOTIDES</span><span class="p">)</span>
-
-    <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="p">:</span>
-      <span class="k">if</span> <span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">m</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">model</span><span class="p">:</span>
-        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">m</span><span class="p">:</span>
-          <span class="k">if</span> <span class="n">chain</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">c</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">chain</span><span class="p">:</span>
-            <span class="c1"># Identify non-biopolymer residues (ligands, heteroatoms, etc.)</span>
-            <span class="n">residues_to_remove</span> <span class="o">=</span> <span class="p">[</span><span class="n">res</span> <span class="k">for</span> <span class="n">res</span> <span class="ow">in</span> <span class="n">c</span> <span class="k">if</span> <span class="n">res</span><span class="o">.</span><span class="n">get_resname</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">biopolymer_residues</span><span class="p">]</span>
-
-            <span class="c1"># Remove non-biopolymer residues</span>
-            <span class="k">for</span> <span class="n">res</span> <span class="ow">in</span> <span class="n">residues_to_remove</span><span class="p">:</span>
-              <span class="n">c</span><span class="o">.</span><span class="n">detach_child</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
-    <span class="c1"># update the pandas dataframe</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">generate_df</span><span class="p">()</span></div>
-
-
 <div class="viewcode-block" id="Protein.remove_nucleotides">
 <a class="viewcode-back" href="../../neurosnap.html#neurosnap.protein.Protein.remove_nucleotides">[docs]</a>
-  <span class="k">def</span> <span class="nf">remove_nucleotides</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">chain</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+  <span class="k">def</span><span class="w"> </span><span class="nf">remove_nucleotides</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">chain</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Removes all nucleotides (DNA and RNA) from the structure.</span>
 <span class="sd">    If no model or chain is provided, it will remove nucleotides</span>
 <span class="sd">    from the entire structure.</span>
@@ -523,9 +529,42 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">generate_df</span><span class="p">()</span></div>
 
 
+<div class="viewcode-block" id="Protein.remove_non_biopolymers">
+<a class="viewcode-back" href="../../neurosnap.html#neurosnap.protein.Protein.remove_non_biopolymers">[docs]</a>
+  <span class="k">def</span><span class="w"> </span><span class="nf">remove_non_biopolymers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">chain</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Removes all ligands, heteroatoms, and non-biopolymer</span>
+<span class="sd">    residues from the selected structure. Non-biopolymer</span>
+<span class="sd">    residues are considered to be any residues that are not</span>
+<span class="sd">    standard amino acids or standard nucleotides (DNA/RNA).</span>
+<span class="sd">    If no model or chain is provided, it will remove from</span>
+<span class="sd">    the entire structure.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">      model: The model ID to process. If ``None``, will use all models.</span>
+<span class="sd">      chain: The chain ID to process. If ``None``, will use all chains.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># List of standard amino acids and nucleotides (biopolymer residues)</span>
+    <span class="n">biopolymer_residues</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">AA_ABR_TO_CODE</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="n">STANDARD_NUCLEOTIDES</span><span class="p">)</span>
+    <span class="n">biopolymer_residues</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="s2">&quot;UNK&quot;</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">m</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">model</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">m</span><span class="p">:</span>
+          <span class="k">if</span> <span class="n">chain</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">c</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">chain</span><span class="p">:</span>
+            <span class="c1"># Identify non-biopolymer residues (ligands, heteroatoms, etc.)</span>
+            <span class="n">residues_to_remove</span> <span class="o">=</span> <span class="p">[</span><span class="n">res</span> <span class="k">for</span> <span class="n">res</span> <span class="ow">in</span> <span class="n">c</span> <span class="k">if</span> <span class="n">res</span><span class="o">.</span><span class="n">get_resname</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">biopolymer_residues</span><span class="p">]</span>
+
+            <span class="c1"># Remove non-biopolymer residues</span>
+            <span class="k">for</span> <span class="n">res</span> <span class="ow">in</span> <span class="n">residues_to_remove</span><span class="p">:</span>
+              <span class="n">c</span><span class="o">.</span><span class="n">detach_child</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+    <span class="c1"># update the pandas dataframe</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">generate_df</span><span class="p">()</span></div>
+
+
 <div class="viewcode-block" id="Protein.get_backbone">
 <a class="viewcode-back" href="../../neurosnap.html#neurosnap.protein.Protein.get_backbone">[docs]</a>
-  <span class="k">def</span> <span class="nf">get_backbone</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">chain</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+  <span class="k">def</span><span class="w"> </span><span class="nf">get_backbone</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">chain</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Extract backbone atoms (N, CA, C) from the structure.</span>
 <span class="sd">    If model or chain is not provided, extracts from all models/chains.</span>
 
@@ -553,7 +592,7 @@
 
 <div class="viewcode-block" id="Protein.find_disulfide_bonds">
 <a class="viewcode-back" href="../../neurosnap.html#neurosnap.protein.Protein.find_disulfide_bonds">[docs]</a>
-  <span class="k">def</span> <span class="nf">find_disulfide_bonds</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.05</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">]:</span>
+  <span class="k">def</span><span class="w"> </span><span class="nf">find_disulfide_bonds</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.05</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Find disulfide bonds between Cysteine residues in the structure.</span>
 <span class="sd">    Looks for SG-SG bonds within a threshold distance.</span>
 
@@ -585,7 +624,7 @@
 
 <div class="viewcode-block" id="Protein.find_salt_bridges">
 <a class="viewcode-back" href="../../neurosnap.html#neurosnap.protein.Protein.find_salt_bridges">[docs]</a>
-  <span class="k">def</span> <span class="nf">find_salt_bridges</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">chain</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">cutoff</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">4.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">]:</span>
+  <span class="k">def</span><span class="w"> </span><span class="nf">find_salt_bridges</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">chain</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">cutoff</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">4.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Identify salt bridges between oppositely charged residues.</span>
 <span class="sd">    A salt bridge is defined as an interaction between</span>
 <span class="sd">    a positively charged residue (Lys, Arg) and a negatively</span>
@@ -620,7 +659,7 @@
 
 <div class="viewcode-block" id="Protein.find_hydrophobic_residues">
 <a class="viewcode-back" href="../../neurosnap.html#neurosnap.protein.Protein.find_hydrophobic_residues">[docs]</a>
-  <span class="k">def</span> <span class="nf">find_hydrophobic_residues</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">chain</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">]:</span>
+  <span class="k">def</span><span class="w"> </span><span class="nf">find_hydrophobic_residues</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">chain</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Identify hydrophobic residues in the structure.</span>
 
 <span class="sd">    Parameters:</span>
@@ -646,7 +685,7 @@
 
 <div class="viewcode-block" id="Protein.find_missing_residues">
 <a class="viewcode-back" href="../../neurosnap.html#neurosnap.protein.Protein.find_missing_residues">[docs]</a>
-  <span class="k">def</span> <span class="nf">find_missing_residues</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">chain</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+  <span class="k">def</span><span class="w"> </span><span class="nf">find_missing_residues</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">chain</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Identify missing residues in the structure based on residue numbering.</span>
 <span class="sd">    Useful for identifying gaps in the structure.</span>
 
@@ -671,7 +710,7 @@
 
 <div class="viewcode-block" id="Protein.align">
 <a class="viewcode-back" href="../../neurosnap.html#neurosnap.protein.Protein.align">[docs]</a>
-  <span class="k">def</span> <span class="nf">align</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other_protein</span><span class="p">:</span> <span class="s2">&quot;Protein&quot;</span><span class="p">,</span> <span class="n">model1</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">model2</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">):</span>
+  <span class="k">def</span><span class="w"> </span><span class="nf">align</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other_protein</span><span class="p">:</span> <span class="s2">&quot;Protein&quot;</span><span class="p">,</span> <span class="n">model1</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">model2</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Align another Protein object&#39;s structure to the self.structure</span>
 <span class="sd">    of the current object. The other Protein will be transformed</span>
 <span class="sd">    and aligned. Only compares backbone atoms (N, CA, C).</span>
@@ -686,7 +725,7 @@
     <span class="k">assert</span> <span class="n">model2</span> <span class="ow">in</span> <span class="n">other_protein</span><span class="o">.</span><span class="n">models</span><span class="p">(),</span> <span class="s2">&quot;Specified model needs to be present in the other structure.&quot;</span>
 
     <span class="c1"># Use the Superimposer to align the structures</span>
-    <span class="k">def</span> <span class="nf">aux</span><span class="p">(</span><span class="n">sample_model</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">aux</span><span class="p">(</span><span class="n">sample_model</span><span class="p">):</span>
       <span class="n">atoms</span> <span class="o">=</span> <span class="p">[]</span>
       <span class="k">for</span> <span class="n">sample_chain</span> <span class="ow">in</span> <span class="n">sample_model</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">res</span> <span class="ow">in</span> <span class="n">sample_chain</span><span class="p">:</span>
@@ -704,7 +743,7 @@
 
 <div class="viewcode-block" id="Protein.calculate_rmsd">
 <a class="viewcode-back" href="../../neurosnap.html#neurosnap.protein.Protein.calculate_rmsd">[docs]</a>
-  <span class="k">def</span> <span class="nf">calculate_rmsd</span><span class="p">(</span>
+  <span class="k">def</span><span class="w"> </span><span class="nf">calculate_rmsd</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span> <span class="n">other_protein</span><span class="p">:</span> <span class="s2">&quot;Protein&quot;</span><span class="p">,</span> <span class="n">model1</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">model2</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">chain1</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">chain2</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">align</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
   <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate RMSD between the current structure and another protein.</span>
@@ -745,7 +784,7 @@
 
 <div class="viewcode-block" id="Protein.calculate_distance_matrix">
 <a class="viewcode-back" href="../../neurosnap.html#neurosnap.protein.Protein.calculate_distance_matrix">[docs]</a>
-  <span class="k">def</span> <span class="nf">calculate_distance_matrix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">chain</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+  <span class="k">def</span><span class="w"> </span><span class="nf">calculate_distance_matrix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">chain</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate the distance matrix for all alpha-carbon (CA) atoms in the chain.</span>
 <span class="sd">    Useful for creating contact maps or proximity analyses.</span>
 
@@ -775,7 +814,7 @@
 
 <div class="viewcode-block" id="Protein.calculate_center_of_mass">
 <a class="viewcode-back" href="../../neurosnap.html#neurosnap.protein.Protein.calculate_center_of_mass">[docs]</a>
-  <span class="k">def</span> <span class="nf">calculate_center_of_mass</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">chain</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+  <span class="k">def</span><span class="w"> </span><span class="nf">calculate_center_of_mass</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">chain</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate the center of mass of the protein.</span>
 <span class="sd">    Considers only atoms with defined masses.</span>
 
@@ -808,7 +847,7 @@
 
 <div class="viewcode-block" id="Protein.distances_from_com">
 <a class="viewcode-back" href="../../neurosnap.html#neurosnap.protein.Protein.distances_from_com">[docs]</a>
-  <span class="k">def</span> <span class="nf">distances_from_com</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">chain</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+  <span class="k">def</span><span class="w"> </span><span class="nf">distances_from_com</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">chain</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate the distances of all atoms from the center of mass (COM) of the protein.</span>
 
 <span class="sd">    This method computes the Euclidean distance between the coordinates of each atom</span>
@@ -840,7 +879,7 @@
 
 <div class="viewcode-block" id="Protein.calculate_surface_area">
 <a class="viewcode-back" href="../../neurosnap.html#neurosnap.protein.Protein.calculate_surface_area">[docs]</a>
-  <span class="k">def</span> <span class="nf">calculate_surface_area</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">level</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;R&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+  <span class="k">def</span><span class="w"> </span><span class="nf">calculate_surface_area</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">level</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;R&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate the solvent-accessible surface area (SASA) of the protein.</span>
 <span class="sd">    Utilizes Biopython&#39;s SASA module.</span>
 
@@ -862,7 +901,7 @@
 
 <div class="viewcode-block" id="Protein.calculate_protein_volume">
 <a class="viewcode-back" href="../../neurosnap.html#neurosnap.protein.Protein.calculate_protein_volume">[docs]</a>
-  <span class="k">def</span> <span class="nf">calculate_protein_volume</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">chain</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+  <span class="k">def</span><span class="w"> </span><span class="nf">calculate_protein_volume</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">chain</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute an estimate of the protein volume using the van der Waals radii.</span>
 <span class="sd">    Uses the sum of atom radii to compute the volume.</span>
 
@@ -891,9 +930,112 @@
     <span class="k">return</span> <span class="n">volume</span></div>
 
 
+<div class="viewcode-block" id="Protein.calculate_hydrogen_bonds">
+<a class="viewcode-back" href="../../neurosnap.html#neurosnap.protein.Protein.calculate_hydrogen_bonds">[docs]</a>
+  <span class="k">def</span><span class="w"> </span><span class="nf">calculate_hydrogen_bonds</span><span class="p">(</span>
+    <span class="bp">self</span><span class="p">,</span>
+    <span class="n">model</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">chain</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">chain_other</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">donor_acceptor_cutoff</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">3.5</span><span class="p">,</span>
+    <span class="n">angle_cutoff</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">120.0</span><span class="p">,</span>
+  <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate the number of hydrogen bonds in the protein structure.</span>
+<span class="sd">    Hydrogen atoms must be explicitly defined within the structure as implicit hydrogens</span>
+<span class="sd">    will not computed. We recommend using a tool like reduce to add missing hydrogens.</span>
+
+<span class="sd">    Hydrogen bonds are detected based on distance and angle criteria:</span>
+<span class="sd">    - Distance between donor and acceptor must be less than `donor_acceptor_cutoff`.</span>
+<span class="sd">    - The angle formed by donor-hydrogen-acceptor must be greater than `angle_cutoff`.</span>
+
+<span class="sd">    If `model` is set to `None`, hydrogen bonds are calculated only for the first model in the structure.</span>
+
+<span class="sd">    If `chain_other` is `None`:</span>
+<span class="sd">      - Hydrogen bonds are calculated for the specified `chain` or all chains if `chain` is also `None`.</span>
+<span class="sd">    If `chain_other` is set to a specific chain:</span>
+<span class="sd">      - Hydrogen bonds are calculated only between atoms of `chain` and `chain_other`.</span>
+<span class="sd">    If `chain_other` is specified but `chain` is not, an exception is raised.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">      model: Model ID to calculate for. If None, only the first model is considered.</span>
+<span class="sd">      chain: Chain ID to calculate for. If None, all chains in the selected model are considered.</span>
+<span class="sd">      chain_other: Secondary chain ID for inter-chain hydrogen bonds. If None, intra-chain bonds are calculated.</span>
+<span class="sd">      donor_acceptor_cutoff: Maximum distance between donor and acceptor (in Å). Default is 3.5 Å.</span>
+<span class="sd">      angle_cutoff: Minimum angle for a hydrogen bond (in degrees). Default is 120°.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      The total number of hydrogen bonds in the structure.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      ValueError: If `chain_other` is specified but `chain` is not.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">hydrogen_bonds</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">hydrogen_distance_cutoff</span> <span class="o">=</span> <span class="mf">1.2</span>  <span class="c1"># Typical bond length between H and donor atom (in Å)</span>
+
+    <span class="c1"># Default to the first model if model is None</span>
+    <span class="k">if</span> <span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="p">[</span><span class="n">model</span><span class="p">]</span>
+
+    <span class="c1"># input validation</span>
+    <span class="k">if</span> <span class="n">chain_other</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">chain</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;`chain_other` is specified, but `chain` is not. Both must be provided for inter-chain hydrogen bond calculation.&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">chain</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">chain</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">chains</span><span class="p">():</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Chain </span><span class="si">{</span><span class="n">chain</span><span class="si">}</span><span class="s2"> does not exist within the input structure.&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">chain_other</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">chain_other</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">chains</span><span class="p">():</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Chain </span><span class="si">{</span><span class="n">chain_other</span><span class="si">}</span><span class="s2"> does not exist within the input structure.&quot;</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">model</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">chain</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">c</span><span class="o">.</span><span class="n">id</span> <span class="o">!=</span> <span class="n">chain</span><span class="p">:</span>
+        <span class="k">continue</span>
+
+      <span class="k">for</span> <span class="n">donor_res</span> <span class="ow">in</span> <span class="n">c</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">donor_atom</span> <span class="ow">in</span> <span class="n">donor_res</span><span class="p">:</span>
+          <span class="k">if</span> <span class="n">donor_atom</span><span class="o">.</span><span class="n">element</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;N&quot;</span><span class="p">,</span> <span class="s2">&quot;O&quot;</span><span class="p">]:</span>
+            <span class="k">continue</span>  <span class="c1"># Only consider N or O as donors</span>
+
+          <span class="c1"># Identify hydrogen atoms bonded to the donor</span>
+          <span class="n">bonded_hydrogens</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">atom</span> <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">donor_res</span> <span class="k">if</span> <span class="n">atom</span><span class="o">.</span><span class="n">element</span> <span class="o">==</span> <span class="s2">&quot;H&quot;</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">donor_atom</span><span class="o">.</span><span class="n">coord</span> <span class="o">-</span> <span class="n">atom</span><span class="o">.</span><span class="n">coord</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">hydrogen_distance_cutoff</span>
+          <span class="p">]</span>
+          <span class="k">if</span> <span class="ow">not</span> <span class="n">bonded_hydrogens</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+          <span class="c1"># Determine chains to search for acceptors</span>
+          <span class="n">acceptor_chains</span> <span class="o">=</span> <span class="p">[</span><span class="n">chain_other</span><span class="p">]</span> <span class="k">if</span> <span class="n">chain_other</span> <span class="k">else</span> <span class="p">[</span><span class="n">c</span><span class="o">.</span><span class="n">id</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">model</span> <span class="k">if</span> <span class="n">chain</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">c</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">chain</span><span class="p">]</span>
+
+          <span class="k">for</span> <span class="n">acceptor_chain</span> <span class="ow">in</span> <span class="n">acceptor_chains</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">acceptor_res</span> <span class="ow">in</span> <span class="n">model</span><span class="p">[</span><span class="n">acceptor_chain</span><span class="p">]:</span>
+              <span class="k">for</span> <span class="n">acceptor_atom</span> <span class="ow">in</span> <span class="n">acceptor_res</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">acceptor_atom</span><span class="o">.</span><span class="n">element</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;N&quot;</span><span class="p">,</span> <span class="s2">&quot;O&quot;</span><span class="p">]:</span>
+                  <span class="k">continue</span>  <span class="c1"># Only consider N or O as acceptors</span>
+                <span class="k">if</span> <span class="n">acceptor_atom</span> <span class="ow">is</span> <span class="n">donor_atom</span><span class="p">:</span>
+                  <span class="k">continue</span>  <span class="c1"># Skip self-bonding</span>
+
+                <span class="c1"># Calculate the distance between donor and acceptor</span>
+                <span class="n">distance</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">donor_atom</span><span class="o">.</span><span class="n">coord</span> <span class="o">-</span> <span class="n">acceptor_atom</span><span class="o">.</span><span class="n">coord</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">distance</span> <span class="o">&gt;</span> <span class="n">donor_acceptor_cutoff</span><span class="p">:</span>
+                  <span class="k">continue</span>
+
+                <span class="c1"># Calculate the angle formed by donor-hydrogen-acceptor for each bonded hydrogen</span>
+                <span class="k">for</span> <span class="n">hydrogen</span> <span class="ow">in</span> <span class="n">bonded_hydrogens</span><span class="p">:</span>
+                  <span class="n">donor_h_vector</span> <span class="o">=</span> <span class="n">hydrogen</span><span class="o">.</span><span class="n">coord</span> <span class="o">-</span> <span class="n">donor_atom</span><span class="o">.</span><span class="n">coord</span>
+                  <span class="n">acceptor_donor_vector</span> <span class="o">=</span> <span class="n">acceptor_atom</span><span class="o">.</span><span class="n">coord</span> <span class="o">-</span> <span class="n">donor_atom</span><span class="o">.</span><span class="n">coord</span>
+                  <span class="n">angle</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arccos</span><span class="p">(</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">donor_h_vector</span><span class="p">,</span> <span class="n">acceptor_donor_vector</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">donor_h_vector</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">acceptor_donor_vector</span><span class="p">))</span>
+                  <span class="p">)</span>
+                  <span class="n">angle</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">degrees</span><span class="p">(</span><span class="n">angle</span><span class="p">)</span>
+
+                  <span class="k">if</span> <span class="n">angle</span> <span class="o">&gt;=</span> <span class="n">angle_cutoff</span><span class="p">:</span>
+                    <span class="n">hydrogen_bonds</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">return</span> <span class="n">hydrogen_bonds</span></div>
+
+
 <div class="viewcode-block" id="Protein.to_sdf">
 <a class="viewcode-back" href="../../neurosnap.html#neurosnap.protein.Protein.to_sdf">[docs]</a>
-  <span class="k">def</span> <span class="nf">to_sdf</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fpath</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+  <span class="k">def</span><span class="w"> </span><span class="nf">to_sdf</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fpath</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Save the current protein structure as an SDF file.</span>
 <span class="sd">    Will export all models and chains. Use :obj:`.remove()`</span>
 <span class="sd">    method to get rid of undesired regions.</span>
@@ -922,7 +1064,7 @@
 
 <div class="viewcode-block" id="Protein.remove">
 <a class="viewcode-back" href="../../neurosnap.html#neurosnap.protein.Protein.remove">[docs]</a>
-  <span class="k">def</span> <span class="nf">remove</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">chain</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">resi_start</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">resi_end</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+  <span class="k">def</span><span class="w"> </span><span class="nf">remove</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">chain</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">resi_start</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">resi_end</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Completely removes all parts of a selection from</span>
 <span class="sd">    self.structure. If a residue range is provided then all</span>
 <span class="sd">    residues between resi_start and resi_end will be removed</span>
@@ -968,16 +1110,26 @@
 
 <div class="viewcode-block" id="Protein.save">
 <a class="viewcode-back" href="../../neurosnap.html#neurosnap.protein.Protein.save">[docs]</a>
-  <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fpath</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">format</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;pdb&quot;</span><span class="p">):</span>
+  <span class="k">def</span><span class="w"> </span><span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fpath</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">format</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;auto&quot;</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Save the structure as a PDB or mmCIF file.</span>
 <span class="sd">    Will overwrite any existing files.</span>
 
 <span class="sd">    Parameters:</span>
 <span class="sd">      fpath: File path where you want to save the structure</span>
-<span class="sd">      format: File format to save in, either &#39;pdb&#39; or &#39;mmcif&#39;</span>
+<span class="sd">      format: File format to save in, either &#39;pdb&#39; or &#39;mmcif&#39;, set to &#39;auto&#39; to infer format from extension.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="nb">format</span> <span class="o">=</span> <span class="nb">format</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="c1"># infer format from extension if not provided</span>
+    <span class="k">if</span> <span class="nb">format</span> <span class="o">==</span> <span class="s2">&quot;auto&quot;</span><span class="p">:</span>
+      <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">fpath</span><span class="p">)</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.pdb&quot;</span><span class="p">):</span>
+        <span class="nb">format</span> <span class="o">=</span> <span class="s2">&quot;pdb&quot;</span>
+      <span class="k">elif</span> <span class="nb">str</span><span class="p">(</span><span class="n">fpath</span><span class="p">)</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.mmcif&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">str</span><span class="p">(</span><span class="n">fpath</span><span class="p">)</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.cif&quot;</span><span class="p">):</span>
+        <span class="nb">format</span> <span class="o">=</span> <span class="s2">&quot;mmcif&quot;</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Failed to infer format for file. Supported extensions consist of &#39;.pdb&#39; or &#39;.mmcif&#39;.&quot;</span><span class="p">)</span>
+
+    <span class="c1"># save file</span>
     <span class="k">if</span> <span class="nb">format</span> <span class="o">==</span> <span class="s2">&quot;pdb&quot;</span><span class="p">:</span>
       <span class="n">io</span> <span class="o">=</span> <span class="n">PDBIO</span><span class="p">()</span>
       <span class="n">io</span><span class="o">.</span><span class="n">set_structure</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="p">)</span>
@@ -995,7 +1147,7 @@
 <span class="c1">### FUNCTIONS ###</span>
 <div class="viewcode-block" id="getAA">
 <a class="viewcode-back" href="../../neurosnap.html#neurosnap.protein.getAA">[docs]</a>
-<span class="k">def</span> <span class="nf">getAA</span><span class="p">(</span><span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">getAA</span><span class="p">(</span><span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
 <span class="w">  </span><span class="sd">&quot;&quot;&quot;Efficiently get any amino acid using either their 1 letter code,</span>
 <span class="sd">  3 letter abbreviation, or full name. See AAs_FULL_TABLE</span>
 <span class="sd">  for a list of all supported amino acids and codes.</span>
@@ -1024,9 +1176,118 @@
 
 
 
+<div class="viewcode-block" id="extract_non_biopolymers">
+<a class="viewcode-back" href="../../neurosnap.html#neurosnap.protein.extract_non_biopolymers">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">extract_non_biopolymers</span><span class="p">(</span><span class="n">pdb_file</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">output_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">min_atoms</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">):</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">  Extracts all non-biopolymer molecules (ligands, heteroatoms, etc.)</span>
+<span class="sd">  from the specified PDB file and writes them to SDF files.</span>
+<span class="sd">  Each molecule is saved as a separate SDF file in the output directory.</span>
+<span class="sd">  Automatically adds hydrogens to molecules. Attempts to sanitize</span>
+<span class="sd">  the molecule if possible; logs a warning if sanitization fails.</span>
+
+<span class="sd">  Parameters:</span>
+<span class="sd">      pdb_file: Path to the input PDB file.</span>
+<span class="sd">      output_dir: Directory where the SDF files will be saved. Will overwrite existing directory.</span>
+<span class="sd">      min_atoms: Minimum number of atoms a molecule must have to be saved. Molecules with fewer atoms are skipped.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="k">def</span><span class="w"> </span><span class="nf">is_biopolymer</span><span class="p">(</span><span class="n">molecule</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Determines if a molecule is a biopolymer (protein or nucleotide) based on specific characteristics.</span>
+<span class="sd">    Returns True if it is a biopolymer; False otherwise.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Check for peptide bonds or nucleotide backbones</span>
+    <span class="c1"># Simplified logic: exclude molecules with standard amino acids or nucleotide bases</span>
+    <span class="n">biopolymer_keywords</span> <span class="o">=</span> <span class="p">[</span>
+      <span class="s2">&quot;GLY&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;ALA&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;VAL&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;LEU&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;ILE&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;MET&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;PHE&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;TYR&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;TRP&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;SER&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;THR&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;CYS&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;PRO&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;ASN&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;GLN&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;ASP&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;GLU&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;LYS&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;ARG&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;HIS&quot;</span><span class="p">,</span>  <span class="c1"># Amino acids</span>
+      <span class="s2">&quot;DA&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;DT&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;DG&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;DC&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;A&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;T&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;G&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;C&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;U&quot;</span><span class="p">,</span>  <span class="c1"># Nucleotide bases</span>
+    <span class="p">]</span>
+    <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">molecule</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">():</span>
+      <span class="n">residue_info</span> <span class="o">=</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetPDBResidueInfo</span><span class="p">()</span>
+      <span class="k">if</span> <span class="n">residue_info</span><span class="p">:</span>
+        <span class="n">res_name</span> <span class="o">=</span> <span class="n">residue_info</span><span class="o">.</span><span class="n">GetResidueName</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">res_name</span> <span class="ow">in</span> <span class="n">biopolymer_keywords</span><span class="p">:</span>
+          <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">return</span> <span class="kc">False</span>
+
+  <span class="c1"># Create output directory if it doesn&#39;t exist</span>
+  <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">output_dir</span><span class="p">):</span>
+    <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">output_dir</span><span class="p">)</span>
+  <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">output_dir</span><span class="p">)</span>
+
+  <span class="c1"># Read the PDB file</span>
+  <span class="n">mol</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolFromPDBFile</span><span class="p">(</span><span class="n">pdb_file</span><span class="p">,</span> <span class="n">removeHs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">sanitize</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">mol</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to read PDB file: </span><span class="si">{</span><span class="n">pdb_file</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+
+  <span class="c1"># Split the molecule into fragments (separate entities in the PDB)</span>
+  <span class="n">fragments</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">GetMolFrags</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">asMols</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">sanitizeFrags</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+  <span class="n">molecule_count</span> <span class="o">=</span> <span class="mi">1</span>
+
+  <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">frag</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">fragments</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">frag</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Skipping fragment </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> due to processing failure.&quot;</span><span class="p">)</span>
+      <span class="k">continue</span>
+
+    <span class="k">try</span><span class="p">:</span>
+      <span class="c1"># Add hydrogens and sanitize molecule</span>
+      <span class="n">Chem</span><span class="o">.</span><span class="n">SanitizeMol</span><span class="p">(</span><span class="n">frag</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+      <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to sanitize fragment </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+      <span class="k">continue</span>
+
+    <span class="c1"># Check if the fragment is a biopolymer</span>
+    <span class="k">if</span> <span class="n">is_biopolymer</span><span class="p">(</span><span class="n">frag</span><span class="p">):</span>
+      <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Skipping biopolymer fragment </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+      <span class="k">continue</span>
+
+    <span class="c1"># Skip small molecules based on atom count</span>
+    <span class="k">if</span> <span class="n">frag</span><span class="o">.</span><span class="n">GetNumAtoms</span><span class="p">()</span> <span class="o">&lt;</span> <span class="n">min_atoms</span><span class="p">:</span>
+      <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Skipping small molecule fragment </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> (atom count: </span><span class="si">{</span><span class="n">frag</span><span class="o">.</span><span class="n">GetNumAtoms</span><span class="p">()</span><span class="si">}</span><span class="s2">).&quot;</span><span class="p">)</span>
+      <span class="k">continue</span>
+
+    <span class="c1"># Save fragment to SDF</span>
+    <span class="n">sdf_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;ligand_</span><span class="si">{</span><span class="n">molecule_count</span><span class="si">}</span><span class="s2">.sdf&quot;</span><span class="p">)</span>
+    <span class="n">writer</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">SDWriter</span><span class="p">(</span><span class="n">sdf_file</span><span class="p">)</span>
+    <span class="n">writer</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">frag</span><span class="p">)</span>
+    <span class="n">writer</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="n">molecule_count</span> <span class="o">+=</span> <span class="mi">1</span>
+
+  <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Extracted </span><span class="si">{</span><span class="n">molecule_count</span><span class="o">-</span><span class="mi">1</span><span class="si">}</span><span class="s2"> non-biopolymer molecules to </span><span class="si">{</span><span class="n">output_dir</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span></div>
+
+
+
 <div class="viewcode-block" id="calc_lDDT">
 <a class="viewcode-back" href="../../neurosnap.html#neurosnap.protein.calc_lDDT">[docs]</a>
-<span class="k">def</span> <span class="nf">calc_lDDT</span><span class="p">(</span><span class="n">ref_pdb</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">sample_pdb</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">calc_lDDT</span><span class="p">(</span><span class="n">ref_pdb</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">sample_pdb</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 <span class="w">  </span><span class="sd">&quot;&quot;&quot;Calculates the lDDT (Local Distance Difference Test) between two proteins.</span>
 
 <span class="sd">  Parameters:</span>
@@ -1045,7 +1306,7 @@
 
 <div class="viewcode-block" id="foldseek_search">
 <a class="viewcode-back" href="../../neurosnap.html#neurosnap.protein.foldseek_search">[docs]</a>
-<span class="k">def</span> <span class="nf">foldseek_search</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">foldseek_search</span><span class="p">(</span>
   <span class="n">protein</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="s2">&quot;Protein&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
   <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;3diaa&quot;</span><span class="p">,</span>
   <span class="n">databases</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1173,7 +1434,7 @@
 
 <div class="viewcode-block" id="run_blast">
 <a class="viewcode-back" href="../../neurosnap.html#neurosnap.protein.run_blast">[docs]</a>
-<span class="k">def</span> <span class="nf">run_blast</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">run_blast</span><span class="p">(</span>
   <span class="n">sequence</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="s2">&quot;Protein&quot;</span><span class="p">],</span>
   <span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
   <span class="n">matrix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;BLOSUM62&quot;</span><span class="p">,</span>
@@ -1238,7 +1499,7 @@
 <span class="sd">    AssertionError: If ``sequence`` is provided as a Protein object with multiple chains.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
-  <span class="k">def</span> <span class="nf">parse_xml_to_fasta_and_dataframe</span><span class="p">(</span><span class="n">xml_content</span><span class="p">,</span> <span class="n">job_id</span><span class="p">,</span> <span class="n">output_format</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">output_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">return_df</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+  <span class="k">def</span><span class="w"> </span><span class="nf">parse_xml_to_fasta_and_dataframe</span><span class="p">(</span><span class="n">xml_content</span><span class="p">,</span> <span class="n">job_id</span><span class="p">,</span> <span class="n">output_format</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">output_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">return_df</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Parses the XML content, saves it as a FASTA file, or returns a DataFrame if requested.&quot;&quot;&quot;</span>
     <span class="n">root</span> <span class="o">=</span> <span class="n">ET</span><span class="o">.</span><span class="n">fromstring</span><span class="p">(</span><span class="n">xml_content</span><span class="p">)</span>
     <span class="n">hits</span> <span class="o">=</span> <span class="p">[]</span>
@@ -1410,7 +1671,7 @@
 
 <div class="viewcode-block" id="plot_pseudo_3D">
 <a class="viewcode-back" href="../../neurosnap.html#neurosnap.protein.plot_pseudo_3D">[docs]</a>
-<span class="k">def</span> <span class="nf">plot_pseudo_3D</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">plot_pseudo_3D</span><span class="p">(</span>
   <span class="n">xyz</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">],</span>
   <span class="n">c</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
   <span class="n">ax</span><span class="p">:</span> <span class="n">matplotlib</span><span class="o">.</span><span class="n">axes</span><span class="o">.</span><span class="n">Axes</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1448,7 +1709,7 @@
 
 <span class="sd">  &quot;&quot;&quot;</span>
 
-  <span class="k">def</span> <span class="nf">rescale</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">amin</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">amax</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="k">def</span><span class="w"> </span><span class="nf">rescale</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">amin</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">amax</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">amin</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">amin</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
@@ -1561,7 +1822,7 @@
 
 <div class="viewcode-block" id="animate_pseudo_3D">
 <a class="viewcode-back" href="../../neurosnap.html#neurosnap.protein.animate_pseudo_3D">[docs]</a>
-<span class="k">def</span> <span class="nf">animate_pseudo_3D</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">animate_pseudo_3D</span><span class="p">(</span>
   <span class="n">fig</span><span class="p">:</span> <span class="n">matplotlib</span><span class="o">.</span><span class="n">figure</span><span class="o">.</span><span class="n">Figure</span><span class="p">,</span>
   <span class="n">ax</span><span class="p">:</span> <span class="n">matplotlib</span><span class="o">.</span><span class="n">axes</span><span class="o">.</span><span class="n">Axes</span><span class="p">,</span>
   <span class="n">frames</span><span class="p">:</span> <span class="n">matplotlib</span><span class="o">.</span><span class="n">collections</span><span class="o">.</span><span class="n">LineCollection</span><span class="p">,</span>
@@ -1609,7 +1870,7 @@
   <span class="c1"># disable axes</span>
   <span class="n">ax</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;off&quot;</span><span class="p">)</span>
 
-  <span class="k">def</span> <span class="nf">init</span><span class="p">():</span>
+  <span class="k">def</span><span class="w"> </span><span class="nf">init</span><span class="p">():</span>
     <span class="c1"># hide all frames</span>
     <span class="k">for</span> <span class="n">frame</span> <span class="ow">in</span> <span class="n">frames</span><span class="p">:</span>
       <span class="n">frame</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
@@ -1619,7 +1880,7 @@
     <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">titles</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
     <span class="k">return</span> <span class="p">(</span><span class="n">collection</span><span class="p">,)</span>
 
-  <span class="k">def</span> <span class="nf">animate</span><span class="p">(</span><span class="n">i</span><span class="p">):</span>
+  <span class="k">def</span><span class="w"> </span><span class="nf">animate</span><span class="p">(</span><span class="n">i</span><span class="p">):</span>
     <span class="n">frames</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
     <span class="n">frames</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">ax</span><span class="o">.</span><span class="n">add_collection</span><span class="p">(</span><span class="n">frames</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
@@ -1638,7 +1899,7 @@
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2024, Neurosnap Inc..</p>
+    <p>&#169; Copyright 2022-2025, Neurosnap Inc..</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>neurosnap.log &mdash; neurosnap 0.0.64 documentation</title>
-      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+  <title>neurosnap.log &mdash; neurosnap 2025.01.08 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
 
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=b153cf10"></script>
+      <script src="../../_static/documentation_options.js?v=ad7aade1"></script>
       <script src="../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
@@ -39,9 +39,9 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Documentation</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../neurosnap.html">neurosnap package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">neurosnap</a></li>
 </ul>
 
         </div>
@@ -69,13 +69,13 @@
            <div itemprop="articleBody">
              
   <h1>Source code for neurosnap.log</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">logging</span>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 
 
 <span class="c1">### CLASSES ###</span>
 <div class="viewcode-block" id="c">
 <a class="viewcode-back" href="../../neurosnap.html#neurosnap.log.c">[docs]</a>
-<span class="k">class</span> <span class="nc">c</span><span class="p">:</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">c</span><span class="p">:</span>
 <span class="w">  </span><span class="sd">&quot;&quot;&quot;Terminal colors class&quot;&quot;&quot;</span>
 
   <span class="n">_</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\033</span><span class="s2">[0m&quot;</span>  <span class="c1"># reset terminal</span>
@@ -93,7 +93,7 @@
 
 <div class="viewcode-block" id="CustomLogger">
 <a class="viewcode-back" href="../../neurosnap.html#neurosnap.log.CustomLogger">[docs]</a>
-<span class="k">class</span> <span class="nc">CustomLogger</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">Formatter</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">CustomLogger</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">Formatter</span><span class="p">):</span>
 <span class="w">  </span><span class="sd">&quot;&quot;&quot;Custom logger with specialized formatting.</span>
 
 <span class="sd">  NOTE:</span>
@@ -123,7 +123,7 @@
 
 <div class="viewcode-block" id="CustomLogger.format">
 <a class="viewcode-back" href="../../neurosnap.html#neurosnap.log.CustomLogger.format">[docs]</a>
-  <span class="k">def</span> <span class="nf">format</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">record</span><span class="p">):</span>
+  <span class="k">def</span><span class="w"> </span><span class="nf">format</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">record</span><span class="p">):</span>
     <span class="n">log_fmt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FORMATS</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">levelno</span><span class="p">)</span>
     <span class="n">formatter</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">Formatter</span><span class="p">(</span><span class="n">log_fmt</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">formatter</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">record</span><span class="p">)</span></div>
@@ -148,7 +148,7 @@
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2024, Neurosnap Inc..</p>
+    <p>&#169; Copyright 2022-2025, Neurosnap Inc..</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
