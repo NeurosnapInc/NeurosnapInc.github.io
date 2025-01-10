@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>neurosnap package &mdash; Neurosnap 2025.01.08 documentation</title>
+  <title>neurosnap package &mdash; Neurosnap 2025.01.10 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
@@ -14,7 +14,7 @@
     <link rel="shortcut icon" href="_static/favicon.ico"/>
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=ad7aade1"></script>
+      <script src="_static/documentation_options.js?v=ea264eaa"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
@@ -981,18 +981,16 @@ provided, will return a copy of the internal dataframe.</p>
 <dt class="sig sig-object py" id="neurosnap.protein.Protein.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pdb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'auto'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/neurosnap/protein.html#Protein.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#neurosnap.protein.Protein.__init__" title="Link to this definition"></a></dt>
 <dd><p>Class that wraps around a protein structure.</p>
-<blockquote>
-<div><p>Utilizes the biopython protein structure under the hood.
+<p>Utilizes the biopython protein structure under the hood.
 Atoms that are not part of a chain will automatically be
 added to a new chain that does not overlap with any
 existing chains.</p>
-</div></blockquote>
-<dl class="simple">
-<dt>I</dt><dd><dl class="simple">
-<dt>Parameters:</dt><dd><p>pdb: Can be either a file handle, PDB or mmCIF filepath, PDB ID, or UniProt ID
-format: File format of the input (“pdb”, “mmcif”, or “auto” to infer format from extension)</p>
-</dd>
-</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pdb</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Union" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/io.html#io.IOBase" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">IOBase</span></code></a>]</span>) – Can be either a file handle, PDB or mmCIF filepath, PDB ID, or UniProt ID</p></li>
+<li><p><strong>format</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – File format of the input (“pdb”, “mmcif”, or “auto” to infer format from extension)</p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
@@ -1461,6 +1459,43 @@ Will overwrite any existing files.</p>
 <li><p><strong>fpath</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – File path where you want to save the structure</p></li>
 <li><p><strong>format</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – File format to save in, either ‘pdb’ or ‘mmcif’, set to ‘auto’ to infer format from extension.</p></li>
 </ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="neurosnap.protein.Protein.select_residues">
+<span class="sig-name descname"><span class="pre">select_residues</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">selectors</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/neurosnap/protein.html#Protein.select_residues"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#neurosnap.protein.Protein.select_residues" title="Link to this definition"></a></dt>
+<dd><p>Select residues from a protein structure using a string selector.</p>
+<p>This method allows for flexible selection of residues in a protein structure
+based on a string query. The query must be a comma-delimited list of selectors
+following these patterns:</p>
+<ul class="simple">
+<li><p>“C”: Select all residues in chain C.</p></li>
+<li><p>“B1”: Select residue with identifier 1 in chain B only.</p></li>
+<li><p>“A10-20”: Select residues with identifiers 10 to 20 (inclusive) in chain A.</p></li>
+<li><p>“A15,A20-23,B”: Select residues 15, 20, 21, 22, 23, and all residues in chain B.</p></li>
+</ul>
+<p>If any selector does not match residues in the structure, an exception is raised.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>selectors</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – A string specifying the residue selection query.</p></li>
+<li><p><strong>model</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a>]</span>) – The ID of the model to select from. If None, the first model is used.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>A dictionary where keys are chain IDs and values are sorted</dt><dd><p>lists of residue sequence numbers that match the query.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)">dict</a></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – If a specified chain or residue in the selector does not exist in the structure.</p>
 </dd>
 </dl>
 </dd></dl>
